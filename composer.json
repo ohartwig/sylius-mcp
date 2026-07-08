@@ -1,12 +1,12 @@
 {
     "name": "koh/sylius-mcp",
-    "description": "MCP layer over the official sylius/mcp-server-plugin: project tool config + custom MCP tools.",
+    "description": "MCP layer over the official sylius/mcp-server-plugin: project tool config + custom MCP tools for content-commerce.",
     "type": "sylius-bundle",
     "license": "proprietary",
     "require": {
         "php": "^8.5",
-        "sylius/mcp-server-plugin": "^1.0",
-        "sylius/sylius": "^2.0"
+        "sylius/sylius": "^2.1",
+        "sylius/mcp-server-plugin": "^1.0"
     },
     "require-dev": {
         "phpstan/phpstan": "^2.0",
