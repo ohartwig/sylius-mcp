@@ -1,0 +1,11 @@
+{
+    "name": "ai-ready/sylius-mcp",
+    "description": "MCP-Schicht ueber sylius/mcp-server-plugin (Config + eigene Tools)",
+    "type": "sylius-plugin",
+    "license": "proprietary",
+    "require": {
+        "php": "^8.5",
+        "sylius/mcp-server-plugin": "^1.0",
+        "sylius/sylius": "^2.0"
+    }
+}
