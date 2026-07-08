@@ -1,11 +1,30 @@
 {
-    "name": "ai-ready/sylius-mcp",
-    "description": "MCP-Schicht ueber sylius/mcp-server-plugin (Config + eigene Tools)",
-    "type": "sylius-plugin",
+    "name": "koh/sylius-mcp",
+    "description": "MCP layer over the official sylius/mcp-server-plugin: project tool config + custom MCP tools.",
+    "type": "sylius-bundle",
     "license": "proprietary",
     "require": {
         "php": "^8.5",
         "sylius/mcp-server-plugin": "^1.0",
         "sylius/sylius": "^2.0"
+    },
+    "require-dev": {
+        "phpstan/phpstan": "^2.0",
+        "phpunit/phpunit": "^11.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Koh\\SyliusMcp\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Koh\\SyliusMcp\\Tests\\": "tests/"
+        }
+    },
+    "extra": {
+        "branch-alias": {
+            "dev-main": "0.1-dev"
+        }
     }
 }
