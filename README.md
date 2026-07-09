@@ -25,3 +25,5 @@ Enable in `commerce`:
 ---
 
 Teil der **AI Ready Plattform** (Content-Commerce: Sylius × TYPO3). Status: funktionaler First-Pass.
+
+<!-- release: retry after release-bot maintainer grant -->
