@@ -1,3 +1,9 @@
+## [1.0.1](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/compare/v1.0.0...v1.0.1) (2026-07-11)
+
+### :bug: Fixes
+
+* require sylius/mcp-server-plugin ^0.2 (was ^1.0, does not exist) ([27c6435](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/commit/27c6435245c88d3c5cfe4ecbd33fd592707d2ced))
+
 ## 1.0.0 (2026-07-09)
 
 ### :sparkles: Features
