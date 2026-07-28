@@ -1,3 +1,32 @@
+## [1.1.0](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/compare/v1.0.1...v1.1.0) (2026-07-28)
+
+### :sparkles: Features
+
+* publish the MCP server card ([42b96f6](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/commit/42b96f6598e45ce584405e2ed265ab878c9026a7))
+
+### :bug: Fixes
+
+* repair a PHP syntax error in ContentAwareProductSearchTool ([90dbb29](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/commit/90dbb2947d352366aa1167c62c0deabda391ef6a))
+
+### :repeat: Chores
+
+* **ci:** composed 1.18.6 (dep-proxy-free) — retire the proxy ([1b263c3](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/commit/1b263c31744caafc15adebfeab7bc7ac8dfa9472))
+* **deps:** update dependency devops/ci-cd-components/composed-default-pipelines to v1.18.3 ([0f63127](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/commit/0f63127e05d0a5f7e11cd6e74a4da5bff1a4bd85))
+* **deps:** update dependency devops/ci-cd-components/composed-default-pipelines to v1.23.1 ([d069c73](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/commit/d069c73ad92ee30a255ceb042b03038776406273))
+* **deps:** update dependency devops/ci-cd-components/composed-default-pipelines to v1.23.10 ([79f98fa](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/commit/79f98fa788f797b2d27fa23e97c49dea6848ef0b))
+* **deps:** update dependency devops/ci-cd-components/composed-default-pipelines to v1.23.11 ([e5488f3](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/commit/e5488f32948d5137ad448d213adad039874853e2))
+* **deps:** update dependency devops/ci-cd-components/composed-default-pipelines to v1.23.12 ([c039d2f](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/commit/c039d2f8105365db886472e3a643d9e652327c5e))
+* **deps:** update dependency devops/ci-cd-components/composed-default-pipelines to v1.23.13 ([477ff81](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/commit/477ff810e227bd6a13456ffde3a3239b6d19b023))
+* **deps:** update dependency devops/ci-cd-components/composed-default-pipelines to v1.23.2 ([86cea4f](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/commit/86cea4faf5d9fddea2a1b16b2fed71a084b56f2e))
+* **deps:** update dependency devops/ci-cd-components/composed-default-pipelines to v1.23.3 ([dc452e4](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/commit/dc452e42cdb89c4376d77a9837a4d9c1d23ca2ef))
+* **deps:** update dependency devops/ci-cd-components/composed-default-pipelines to v1.23.4 ([53dab20](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/commit/53dab2072994e87dc6f9c0c5234615c0476f16e8))
+* **deps:** update dependency devops/ci-cd-components/composed-default-pipelines to v1.23.5 ([6f07ef3](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/commit/6f07ef3e4cbdcc667d8cc186f9bfb333d60d8503))
+* **deps:** update dependency devops/ci-cd-components/composed-default-pipelines to v1.23.6 ([d75fe29](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/commit/d75fe297b77f8cf2987e856037d2d01ba8ce40c0))
+* **deps:** update dependency devops/ci-cd-components/composed-default-pipelines to v1.23.7 ([3654994](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/commit/36549944ae991c03e2963b8769578f154eed7d64))
+* **deps:** update dependency devops/ci-cd-components/composed-default-pipelines to v1.23.8 ([de61228](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/commit/de61228146366527e4792477f1a9315f2c6ef8e3))
+* **deps:** update dependency devops/ci-cd-components/composed-default-pipelines to v1.24.0 ([d18d4b6](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/commit/d18d4b624ab8117c2867e9c5230fd913e8580dbe))
+* **deps:** update dependency devops/ci-cd-components/composed-default-pipelines to v1.24.1 ([6d921ca](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/commit/6d921ca9c91d80370a2e3ed697ce1bea74763515))
+
 ## [1.0.1](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/compare/v1.0.0...v1.0.1) (2026-07-11)
 
 ### :bug: Fixes
