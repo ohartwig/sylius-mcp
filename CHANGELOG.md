@@ -1,3 +1,15 @@
+## [1.2.1](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/compare/v1.2.0...v1.2.1) (2026-07-28)
+
+### :bug: Fixes
+
+* bound the product search tool at both ends ([3dc7c94](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/commit/3dc7c94f5cd73d39c2ee40e1902f00a867460ea7))
+* drop Moselwal from the copyright line and correct the CI licence header ([a444071](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/commit/a44407102b39e6fd6151de9eda4a5ac450ff6137))
+
+### :repeat: Chores
+
+* **deps:** update dependency devops/ci-cd-components/composed-default-pipelines to v1.26.0 ([b28c366](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/commit/b28c3667fb8863a0b9f6a97d5c7f6d2fc701f3e0))
+* **deps:** update dependency devops/ci-cd-components/composed-default-pipelines to v1.26.3 ([d43e802](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/commit/d43e8022d7ffec5f9cfde894c43cf281331c72d2))
+
 ## [1.2.0](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/compare/v1.1.0...v1.2.0) (2026-07-28)
 
 ### :sparkles: Features
