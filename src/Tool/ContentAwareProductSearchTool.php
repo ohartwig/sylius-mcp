@@ -21,6 +21,9 @@ use Sylius\Component\Product\Repository\ProductRepositoryInterface;
  */
 final class ContentAwareProductSearchTool
 {
+    /** Upper bound on what one tool call may return into an agent's context. */
+    private const MAX_RESULTS = 100;
+
     /** @param ProductRepositoryInterface<ProductInterface> $productRepository */
     public function __construct(
         private readonly ProductRepositoryInterface $productRepository,
@@ -36,11 +39,22 @@ final class ContentAwareProductSearchTool
     )]
     public function __invoke(string $phrase, string $localeCode = 'en_US', int $limit = 10): array
     {
+        // findByName() is a LIKE with no limit, so an empty phrase matches the
+        // whole catalogue. The caller here is an authenticated agent rather than
+        // an anonymous one, but "authenticated" does not make hydrating every
+        // product a reasonable answer to an empty search.
+        if ('' === trim($phrase)) {
+            return [];
+        }
+
         $products = $this->productRepository->findByName($phrase, $localeCode);
 
         // TODO: enrich/re-rank with matching TYPO3 content via koh/typo3-sylius-bridge.
 
-        $products = \array_slice($products, 0, max(1, $limit));
+        // Clamped at both ends. The result goes straight into an agent's context
+        // window, where an unbounded list is not just expensive but crowds out
+        // whatever the agent was actually doing.
+        $products = \array_slice($products, 0, min(max(1, $limit), self::MAX_RESULTS));
 
         return array_map(
             static fn ($product): array => [
