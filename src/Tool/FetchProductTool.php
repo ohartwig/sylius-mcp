@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Koh\SyliusMcp\Tool;
 
 use Mcp\Capability\Attribute\McpTool;
+use Sylius\Component\Product\Model\ProductInterface;
 use Sylius\Component\Product\Repository\ProductRepositoryInterface;
 
 /**
@@ -14,6 +15,7 @@ use Sylius\Component\Product\Repository\ProductRepositoryInterface;
  */
 final class FetchProductTool
 {
+    /** @param ProductRepositoryInterface<ProductInterface> $productRepository */
     public function __construct(
         private readonly ProductRepositoryInterface $productRepository,
     ) {

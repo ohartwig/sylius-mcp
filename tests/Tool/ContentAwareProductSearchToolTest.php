@@ -14,16 +14,16 @@ final class ContentAwareProductSearchToolTest extends TestCase
     public function testItReturnsFlattenedProductRows(): void
     {
         $product = $this->createMock(ProductInterface::class);
-        $product->method(\'getCode\')->willReturn(\'MUG\');
-        $product->method(\'getName\')->willReturn(\'Mug\');
-        $product->method(\'getSlug\')->willReturn(\'mug\');
+        $product->method('getCode')->willReturn('MUG');
+        $product->method('getName')->willReturn('Mug');
+        $product->method('getSlug')->willReturn('mug');
 
         $repository = $this->createMock(ProductRepositoryInterface::class);
-        $repository->method(\'findByName\')->willReturn([$product]);
+        $repository->method('findByName')->willReturn([$product]);
 
         $tool = new ContentAwareProductSearchTool($repository);
-        $rows = $tool(\'mug\', \'en_US\', 10);
+        $rows = $tool('mug', 'en_US', 10);
 
-        self::assertSame([[\'code\' => \'MUG\', \'name\' => \'Mug\', \'slug\' => \'mug\']], $rows);
+        self::assertSame([['code' => 'MUG', 'name' => 'Mug', 'slug' => 'mug']], $rows);
     }
 }

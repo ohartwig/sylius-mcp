@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Koh\SyliusMcp\Tool;
 
 use Mcp\Capability\Attribute\McpTool;
+use Sylius\Component\Product\Model\ProductInterface;
 use Sylius\Component\Product\Repository\ProductRepositoryInterface;
 
 /**
@@ -17,6 +18,7 @@ use Sylius\Component\Product\Repository\ProductRepositoryInterface;
  */
 final class ContentAwareProductSearchTool
 {
+    /** @param ProductRepositoryInterface<ProductInterface> $productRepository */
     public function __construct(
         private readonly ProductRepositoryInterface $productRepository,
     ) {
@@ -26,10 +28,10 @@ final class ContentAwareProductSearchTool
      * @return list<array{code: string, name: string, slug: string|null}>
      */
     #[McpTool(
-        name: \'content_product_search\',
-        description: \'Search shop products by phrase (content-commerce aware). Returns product code, name and slug.\',
+        name: 'content_product_search',
+        description: 'Search shop products by phrase (content-commerce aware). Returns product code, name and slug.',
     )]
-    public function __invoke(string $phrase, string $localeCode = \'en_US\', int $limit = 10): array
+    public function __invoke(string $phrase, string $localeCode = 'en_US', int $limit = 10): array
     {
         $products = $this->productRepository->findByName($phrase, $localeCode);
 
@@ -39,9 +41,9 @@ final class ContentAwareProductSearchTool
 
         return array_map(
             static fn ($product): array => [
-                \'code\' => (string) $product->getCode(),
-                \'name\' => (string) $product->getName(),
-                \'slug\' => $product->getSlug(),
+                'code' => (string) $product->getCode(),
+                'name' => (string) $product->getName(),
+                'slug' => $product->getSlug(),
             ],
             $products,
         );
