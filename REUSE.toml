@@ -12,7 +12,6 @@ SPDX-PackageDownloadLocation = "https://github.com/ole-hartwig/sylius-mcp"
 path = [
     ".gitattributes",
     ".gitignore",
-    ".gitlab-ci.yml",
     ".phpunit.cache/**",
     "CHANGELOG.md",
     "CLAUDE.md",
