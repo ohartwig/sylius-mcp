@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2026 Kai Ole Hartwig
+# SPDX-License-Identifier: MIT
+
 # koh/sylius-mcp — imports the official plugin config for the commerce app.
 # The plugin (sylius/mcp-server-plugin) exposes the MCP HTTP server at POST /_mcp;
 # our #[McpTool] classes are auto-discovered via autoconfigure (config/services.php).

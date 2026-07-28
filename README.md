@@ -1,3 +1,8 @@
+<!--
+SPDX-FileCopyrightText: 2026 Kai Ole Hartwig
+SPDX-License-Identifier: MIT
+-->
+
 # sylius-mcp
 
 > MCP-Schicht ueber sylius/mcp-server-plugin (Config + eigene Tools)

@@ -3,6 +3,16 @@
     "description": "MCP layer over the official sylius/mcp-server-plugin: project tool config + custom MCP tools for content-commerce.",
     "type": "sylius-bundle",
     "license": "MIT",
+    "authors": [
+        {
+            "name": "Kai Ole Hartwig",
+            "email": "mail@ole-hartwig.eu"
+        }
+    ],
+    "support": {
+        "issues": "https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/-/issues",
+        "source": "https://github.com/ole-hartwig/sylius-mcp"
+    },
     "require": {
         "php": ">=8.2",
         "koh/sylius-agent-contracts": "^1.1",
