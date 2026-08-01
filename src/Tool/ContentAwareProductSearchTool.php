@@ -54,7 +54,7 @@ final class ContentAwareProductSearchTool
         // Clamped at both ends. The result goes straight into an agent's context
         // window, where an unbounded list is not just expensive but crowds out
         // whatever the agent was actually doing.
-        $products = \array_slice($products, 0, min(max(1, $limit), self::MAX_RESULTS));
+        $products = array_values(\array_slice($products, 0, min(max(1, $limit), self::MAX_RESULTS)));
 
         return array_map(
             static fn ($product): array => [
