@@ -30,7 +30,6 @@ final class FetchProductTool
     #[McpTool(name: 'fetch_product', description: 'Fetch a single shop product by its code (name, slug, description).')]
     public function __invoke(string $code): ?array
     {
-        /** @var object|null $product */
         $product = $this->productRepository->findOneBy(['code' => $code]);
 
         if ($product === null) {
@@ -41,7 +40,7 @@ final class FetchProductTool
             'code' => (string) $product->getCode(),
             'name' => (string) $product->getName(),
             'slug' => $product->getSlug(),
-            'description' => method_exists($product, 'getDescription') ? $product->getDescription() : null,
+            'description' => $product->getDescription(),
         ];
     }
 }
