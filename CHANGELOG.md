@@ -1,3 +1,15 @@
+## [1.2.5](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/compare/v1.2.4...v1.2.5) (2026-08-05)
+
+### :bug: Fixes
+
+* **deps:** require mcp/sdk and the Symfony components the bundle uses ([ae6eec0](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/commit/ae6eec06d19e62b0fbd4cb9390efa4fe0309d8cb))
+* **deps:** update dependency mcp/sdk to ^0.7 ([769d733](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/commit/769d733e09c12364eb5e47b8aa7dc1b8f12dee26))
+
+### :repeat: Chores
+
+* **deps:** update dependency devops/ci-cd-components/composed-default-pipelines to v1.36.6 ([360d2ab](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/commit/360d2ab97fb984b7614bec750d5ef84a83debdd8))
+* **deps:** update dependency devops/ci-cd-components/composed-default-pipelines to v1.36.8 ([7857d84](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/commit/7857d842ac826e8b9b944a82342413b1a4ba93b5))
+
 ## [1.2.4](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/compare/v1.2.3...v1.2.4) (2026-08-04)
 
 ### :repeat: Chores
