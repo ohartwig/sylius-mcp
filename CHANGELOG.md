@@ -1,3 +1,22 @@
+## [1.2.6](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/compare/v1.2.5...v1.2.6) (2026-08-07)
+
+### :bug: Fixes
+
+* **deps:** cap mcp/sdk back at ^0.3, ^0.7 is unsatisfiable here ([a1bc106](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/commit/a1bc106456ad90c7709ca7fa5d2fbb3cbf0c3c69))
+* **deps:** cap mcp/sdk back at ^0.3, ^0.7 is unsatisfiable here ([979e878](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/commit/979e8782a528cd9b74c4869e28443b1fe9bda4d4))
+
+### :white_check_mark: Tests
+
+* cover McpEndpointProvider and the bundle's extension wiring ([dc922bf](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/commit/dc922bf04e078bb06b8663caee116340798a8761))
+
+### :repeat: Continuous Integrations
+
+* follow the composed pipeline on [@1](https://git.ole-hartwig.eu/1) instead of an exact pin ([64c9f38](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/commit/64c9f38a5bd8604713c5ba83f7f0cb12f62315e1))
+
+### :repeat: Chores
+
+* **deps:** update dependency devops/ci-cd-components/composed-default-pipelines to v1.36.10 ([040cb25](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/commit/040cb2539176230d070ef2a19af4a5ef0acc8ca5))
+
 ## [1.2.5](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/compare/v1.2.4...v1.2.5) (2026-08-05)
 
 ### :bug: Fixes
