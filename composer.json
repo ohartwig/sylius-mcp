@@ -17,7 +17,7 @@
         "php": ">=8.2",
         "koh/sylius-agent-contracts": "^1.1",
         "sylius/sylius": "^2.1.15",
-        "mcp/sdk": "^0.7",
+        "mcp/sdk": "^0.3",
         "sylius/mcp-server-plugin": "^0.2",
         "symfony/config": "^6.4 || ^7.4",
         "symfony/dependency-injection": "^6.4 || ^7.4",
