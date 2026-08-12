@@ -1,3 +1,9 @@
+## [1.2.10](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/compare/v1.2.9...v1.2.10) (2026-08-12)
+
+### :repeat: Chores
+
+* **deps:** spell out the patch digit in the mcp/sdk constraint ([12ecbac](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/commit/12ecbacf2bf223162f5e0448eb5d7577a9447601))
+
 ## [1.2.9](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/compare/v1.2.8...v1.2.9) (2026-08-12)
 
 ### :bug: Fixes
