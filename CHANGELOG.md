@@ -1,3 +1,9 @@
+## [1.2.8](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/compare/v1.2.7...v1.2.8) (2026-08-12)
+
+### :bug: Fixes
+
+* **deps:** update dependency sylius/sylius to ^2.1.15 [security] ([27a0fbc](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/commit/27a0fbc7fec9047bbd785669573f07ce447be7cd))
+
 ## [1.2.7](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/compare/v1.2.6...v1.2.7) (2026-08-11)
 
 ### :bug: Fixes
