@@ -1,3 +1,13 @@
+## [1.2.11](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/compare/v1.2.10...v1.2.11) (2026-08-12)
+
+### :bug: Fixes
+
+* **deps:** update dependency php to >=8.5.9 ([ed3e071](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/commit/ed3e071de02a8d4da2401bfc0a68968143e912cf))
+
+### :repeat: Chores
+
+* **deps:** update phpstan packages ([73421ec](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/commit/73421ecae2e49caef154616a682b0f8a978d0ccd))
+
 ## [1.2.10](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/compare/v1.2.9...v1.2.10) (2026-08-12)
 
 ### :repeat: Chores
