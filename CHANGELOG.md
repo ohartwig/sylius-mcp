@@ -1,3 +1,9 @@
+## [1.2.9](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/compare/v1.2.8...v1.2.9) (2026-08-12)
+
+### :bug: Fixes
+
+* **deps:** constrain mcp/sdk to what the server plugin allows ([cf8dafc](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/commit/cf8dafc05ef2beb8595aac16a4901e2f15ec154d))
+
 ## [1.2.8](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/compare/v1.2.7...v1.2.8) (2026-08-12)
 
 ### :bug: Fixes
