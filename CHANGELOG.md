@@ -1,3 +1,9 @@
+## [1.2.14](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/compare/v1.2.13...v1.2.14) (2026-08-13)
+
+### :bug: Fixes
+
+* **deps:** update dependency mcp/sdk to ^0.7.0 ([2c23034](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/commit/2c23034225d6e8ad55716e9de0304a710ac651ab))
+
 ## [1.2.13](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/compare/v1.2.12...v1.2.13) (2026-08-13)
 
 ### :bug: Fixes
