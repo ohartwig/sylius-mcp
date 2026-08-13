@@ -16,7 +16,7 @@
     "require": {
         "php": ">=8.5.9",
         "koh/sylius-agent-contracts": "^1.1",
-        "sylius/sylius": "^2.1.15",
+        "sylius/sylius": "^2.2.8",
         "mcp/sdk": "^0.3.0",
         "sylius/mcp-server-plugin": "^0.2",
         "symfony/config": "^6.4 || ^7.4",
