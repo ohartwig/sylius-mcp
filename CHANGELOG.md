@@ -1,3 +1,10 @@
+## [1.2.15](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/compare/v1.2.14...v1.2.15) (2026-08-14)
+
+### :bug: Fixes
+
+* allow the infection extension installer plugin ([393ba08](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/commit/393ba08ffb690c3a309817aa66cf87cf19266e97))
+* **deps:** update dependency mcp/sdk to ^0.7.1 ([eac65e4](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/commit/eac65e4ef106e350f7dfa6e241b4b6d35125be2d))
+
 ## [1.2.14](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/compare/v1.2.13...v1.2.14) (2026-08-13)
 
 ### :bug: Fixes
