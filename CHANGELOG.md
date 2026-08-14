@@ -1,3 +1,9 @@
+## [1.2.17](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/compare/v1.2.16...v1.2.17) (2026-08-14)
+
+### :bug: Fixes
+
+* **deps:** pin mcp/sdk back to ^0.3.0 so the package can be installed ([7effeb6](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/commit/7effeb6df8362c78a81419120bba043a6b1bbdb6))
+
 ## [1.2.16](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/compare/v1.2.15...v1.2.16) (2026-08-14)
 
 ### :repeat: Chores
