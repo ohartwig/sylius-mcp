@@ -1,3 +1,9 @@
+## [1.2.25](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/compare/v1.2.24...v1.2.25) (2026-09-02)
+
+### :bug: Fixes
+
+* **deps:** update dependency php to >=8.5.10 ([235888f](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/commit/235888fc6ad63cad055c6c07acaed01d3924f3c1))
+
 ## [1.2.24](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/compare/v1.2.23...v1.2.24) (2026-09-01)
 
 ### :repeat: Chores
