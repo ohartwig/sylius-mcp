@@ -27,7 +27,7 @@
     "require-dev": {
         "moselwal/dev-sylius": "^1.0",
         "phpstan/phpstan": "^2.2.13",
-        "phpunit/phpunit": "^13.3.2",
+        "phpunit/phpunit": "^13.3.3",
         "phpstan/extension-installer": "^1.4.3"
     },
     "autoload": {
