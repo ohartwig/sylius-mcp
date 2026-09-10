@@ -1,3 +1,10 @@
+## [1.2.28](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/compare/v1.2.27...v1.2.28) (2026-09-10)
+
+### :repeat: Chores
+
+* **deps:** update dependency devops/ci-cd-components/composed-default-pipelines to v2 ([b3ddbc4](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/commit/b3ddbc40e49f3356e6f344d8e0961dcb709d1f5c))
+* **deps:** update dependency phpunit/phpunit to ^13.3.3 ([cc09e71](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/commit/cc09e71632dc16cecbb38b7c3c1e3cf6a9a8bf08))
+
 ## [1.2.27](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/compare/v1.2.26...v1.2.27) (2026-09-04)
 
 ### :repeat: Chores
