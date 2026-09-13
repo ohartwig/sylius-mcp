@@ -1,3 +1,13 @@
+## [1.2.29](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/compare/v1.2.28...v1.2.29) (2026-09-13)
+
+### :repeat: Continuous Integrations
+
+* release with yasrt ([d223c22](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/commit/d223c2230c866e2b0daa3bf8d2d3b7155ea6f76a))
+
+### :repeat: Chores
+
+* **deps:** update dependency phpstan/phpstan to ^2.2.14 ([c6c59c1](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/commit/c6c59c10d99e792cb017fcf685d9023d27dc9a1b))
+
 ## [1.2.28](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/compare/v1.2.27...v1.2.28) (2026-09-10)
 
 ### :repeat: Chores
