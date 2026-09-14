@@ -22,6 +22,7 @@ First tool: **`content_product_search`** (`src/Tool/ContentAwareProductSearchToo
 `koh/typo3-sylius-bridge` is a documented TODO.
 
 Enable in `commerce`:
+
 1. `composer require koh/sylius-mcp` (pulls `sylius/mcp-server-plugin`).
 2. Register `Koh\SyliusMcp\KohSyliusMcpBundle` in `config/bundles.php`.
 3. Import the plugin config + routes (`config/packages/sylius_mcp_server.yaml`, `config/routes/*`).
