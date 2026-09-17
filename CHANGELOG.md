@@ -1,3 +1,9 @@
+## [1.2.32](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/compare/v1.2.31...v1.2.32) (2026-09-17)
+
+### :bug: Fixes
+
+* **deps:** update dependency sylius/mcp-server-plugin to ^0.2.0 ([4266bda](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/commit/4266bdadd482f21cf941005ec785d8efea9e04eb))
+
 ## [1.2.31](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/compare/v1.2.30...v1.2.31) (2026-09-16)
 
 ### :repeat: Chores
