@@ -1,3 +1,9 @@
+## [1.2.35](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/compare/v1.2.34...v1.2.35) (2026-09-27)
+
+### :repeat: Chores
+
+* **deps:** update composer packages ([c4fe9bf](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/commit/c4fe9bfb714ae1b99b4b4a8810ef16adf1219de3))
+
 ## [1.2.34](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/compare/v1.2.33...v1.2.34) (2026-09-26)
 
 ### :bug: Fixes
