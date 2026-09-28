@@ -1,3 +1,13 @@
+## [1.2.36](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/compare/v1.2.35...v1.2.36) (2026-09-28)
+
+### :memo: Documentation
+
+* add SECURITY.md ([5d5573b](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/commit/5d5573b821683c0d70308098b602107b8e4f38ff))
+
+### :repeat: Chores
+
+* **deps:** update dependency devops/ci-cd-components/composed-default-pipelines to v2.21.4 ([70b4253](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/commit/70b4253d6292969398769cc8a6115364c1b27725))
+
 ## [1.2.35](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/compare/v1.2.34...v1.2.35) (2026-09-27)
 
 ### :repeat: Chores
