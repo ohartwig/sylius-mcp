@@ -1,3 +1,20 @@
+## [1.2.37](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/compare/v1.2.36...v1.2.37) (2026-09-30)
+
+### :bug: Fixes
+
+* **deps:** update composer packages ([a724a55](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/commit/a724a55c969c1150ba7d37a6b39746cded780e74))
+
+### :repeat: Continuous Integrations
+
+* **deps:** update dependency devops/ci-cd-components/composed-default-pipelines to v2.21.20 ([9c0df56](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/commit/9c0df568b33178b108e329e9c5721d1a5166ed03))
+* **deps:** update dependency devops/ci-cd-components/composed-default-pipelines to v2.21.19 ([5cba854](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/commit/5cba85403fb4200f7b4d7f2eab2414771e606f7f))
+* **deps:** update dependency devops/ci-cd-components/composed-default-pipelines to v2.21.18 ([a62d97c](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/commit/a62d97cd71ae707482e8b23aa35ab74b7d3807de))
+* **deps:** update dependency devops/ci-cd-components/composed-default-pipelines to v2.21.17 ([3329907](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/commit/3329907e8db1379cdc13dd7a2ed60ecfb5f3dc72))
+* **deps:** update dependency devops/ci-cd-components/composed-default-pipelines to v2.21.16 ([0deceda](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/commit/0decedac87e3e1132a50712dcb1fe89e2f378b38))
+* **deps:** update dependency devops/ci-cd-components/composed-default-pipelines to v2.21.12 ([421d312](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/commit/421d312d47c36ad12ebc63bea33ad1f58eff9b54))
+* **deps:** update dependency devops/ci-cd-components/composed-default-pipelines to v2.21.10 ([6414c86](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/commit/6414c86f714ca1c7b5f130d438c7d29d50a63298))
+* **deps:** update dependency devops/ci-cd-components/composed-default-pipelines to v2.21.9 ([bb1c32a](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/commit/bb1c32a404f95cb775b4130b6754d1c43e64c89c))
+
 ## [1.2.36](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/compare/v1.2.35...v1.2.36) (2026-09-28)
 
 ### :memo: Documentation
