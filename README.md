@@ -164,7 +164,7 @@ the admin and not in the shop.
 | Tool | In draft mode |
 |---|---|
 | `create_product`, `import_product` | the product a call creates is disabled right after (the tool itself enables it) |
-| `update_product` | refused while the product is enabled — an edit to a live product is visible at once |
+| `update_product` | allowed on live products too — the change is visible at once, so it always goes through preview (which says LIVE) and confirmation |
 | `create_article` | `publish` forced to `false` |
 | `update_article` | `enabled: true` refused — an agent edits, a person publishes |
 

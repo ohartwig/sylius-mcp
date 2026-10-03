@@ -125,15 +125,24 @@ final class WriteFlowTest extends TestCase
         self::assertCount(1, $this->tools['add_item_to_order']->calls);
     }
 
-    /** Draft rules apply before the preview: a live product is refused, not previewed. */
-    public function testALiveProductIsRefusedBeforeAnyPreview(): void
+    /**
+     * A live product is previewed, marked LIVE, and changed only with the
+     * confirm token — not refused.
+     */
+    public function testALiveProductIsPreviewedAsLiveAndConfirmable(): void
     {
         $this->product->setEnabled(true);
+        $handler = $this->handler();
 
-        $result = self::callTool($this->handler(), 'update_product', ['code' => 'MUG', 'description' => 'New text']);
+        $preview = self::callTool($handler, 'update_product', ['code' => 'MUG', 'description' => 'New text'])->structuredContent['data'] ?? [];
+        self::assertTrue($preview['preview']['live'] ?? null);
+        self::assertStringContainsString('LIVE', (string) ($preview['preview']['summary'] ?? ''));
+        self::assertSame([], $this->tools['update_product']->calls);
 
-        self::assertTrue($result->isError);
-        self::assertStringContainsString('is live', self::text($result));
+        $result = self::callTool($handler, 'update_product', ['code' => 'MUG', 'description' => 'New text', 'confirm' => $preview['confirm']]);
+
+        self::assertFalse($result->isError, self::text($result));
+        self::assertCount(1, $this->tools['update_product']->calls);
     }
 
     /** With confirmation switched off for a tool, it runs at once — the draft rules still apply. */
@@ -158,7 +167,7 @@ final class WriteFlowTest extends TestCase
             new ToolPolicyProvider(),
             self::decider(),
             self::callers(),
-            writes: new WriteGate(new DraftPolicy(false, [], $products), new ConfirmationTokens('secret')),
+            writes: new WriteGate(new DraftPolicy(false, [], $products), new ConfirmationTokens('secret'), [new ProductWritePreview($products, $products, $products)]),
         );
         $request = \Mcp\Schema\Request\CallToolRequest::fromArray(['jsonrpc' => '2.0', 'id' => 9, 'method' => 'tools/call', 'params' => ['name' => 'update_product', 'arguments' => ['code' => 'MUG']]]);
 

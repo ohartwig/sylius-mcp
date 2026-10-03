@@ -35,12 +35,21 @@ final class DraftPolicyTest extends TestCase
         self::assertNull($policy->before('update_article', ['code' => 'a', 'enabled' => false])->refusal);
     }
 
-    /** An edit to a live product would be visible at once; there is no draft of it to edit instead. */
-    public function testALiveProductIsNotEdited(): void
+    /**
+     * update_product may edit a live product (owner's decision); the guard is
+     * preview and confirmation, not refusal.
+     */
+    public function testALiveProductMayBeEdited(): void
     {
-        $live = $this->product('MUG', true);
-        $draft = $this->product('NEW', false);
-        $policy = new DraftPolicy(false, [], $this->repository(['MUG' => $live, 'NEW' => $draft]));
+        $policy = new DraftPolicy(false, [], $this->repository(['MUG' => $this->product('MUG', true)]));
+
+        self::assertNull($policy->before('update_product', ['code' => 'MUG', 'description' => 'x'])->refusal);
+    }
+
+    /** The rule still exists for an application that wants it. */
+    public function testAConfiguredRuleRefusesEditsToLiveProducts(): void
+    {
+        $policy = new DraftPolicy(false, ['update_product' => ['refuse_live_product' => 'code']], $this->repository(['MUG' => $this->product('MUG', true), 'NEW' => $this->product('NEW', false)]));
 
         self::assertStringContainsString('is live', (string) $policy->before('update_product', ['code' => 'MUG', 'description' => 'x'])->refusal);
         self::assertNull($policy->before('update_product', ['code' => 'NEW', 'description' => 'x'])->refusal);

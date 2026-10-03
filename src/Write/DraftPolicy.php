@@ -32,8 +32,9 @@ use Sylius\Resource\Model\ToggleableInterface;
  *    application, not to this package; this is the hook that works without
  *    changing them;
  *  - `refuse_live_product`: the call is refused if the product named by that
- *    argument is enabled. An edit to a live product is visible at once, and
- *    there is no draft of a product to edit instead.
+ *    argument is enabled. No built-in rule uses it: update_product may edit
+ *    a live product (owner's decision), guarded by preview and confirmation
+ *    as a high-risk tool. It is there for an application that wants it.
  *
  * Publishing — enabling the product or article — is a human's step in the
  * admin. With `live: true` none of this applies.
@@ -44,7 +45,6 @@ final class DraftPolicy
     public const BUILT_IN = [
         'create_product' => ['disable_created_product' => 'code'],
         'import_product' => ['disable_created_product' => 'code'],
-        'update_product' => ['refuse_live_product' => 'code'],
         'create_article' => ['force' => ['publish' => false]],
         'update_article' => ['refuse' => ['enabled' => true]],
     ];

@@ -58,7 +58,7 @@ final class CataloguePrompts
             3. Propose a new description, short description and meta description. Keep facts; do not invent properties.
             4. Call update_product WITHOUT confirm to get a preview. Show the user the from/to of each field.
             5. Only after the user agrees, repeat the call with the same arguments plus confirm.
-            A product that is live cannot be changed through MCP; if the preview refuses for that reason, tell the user to disable it in the admin first or to make the change there.
+            If the preview says the product is LIVE, tell the user the change will be visible in the shop as soon as it is confirmed.
             TEXT))];
     }
 }
