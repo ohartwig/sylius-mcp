@@ -257,6 +257,22 @@ output schema; the result's `_meta` carries `koh/untrusted: true` either way.
 A tool whose output is the server's own words can opt out:
 `tools: { my_tool: { untrusted: false } }`.
 
+### Origin check and CORS
+
+The transport specification requires the server to validate `Origin` against
+DNS rebinding, and the SDK answers every response with
+`Access-Control-Allow-Origin: *`. A request to `/_mcp` with an `Origin` that is
+neither the shop itself nor listed is refused with 403 before the firewall
+runs; the wildcard is replaced by the allowed origin or removed. Requests
+without `Origin` — every server-side client, Claude's connectors included —
+are not affected.
+
+```yaml
+koh_sylius_mcp:
+    allowed_origins:
+        - 'https://inspector.example.com'   # a browser-based MCP client
+```
+
 ### Name conflicts
 
 The SDK registry keys tools by name, and the plugin and this package both ship a

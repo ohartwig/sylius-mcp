@@ -39,6 +39,11 @@ final class KohSyliusMcpBundle extends AbstractBundle
                     ->defaultValue('/_mcp')
                     ->info('Where the MCP server listens. Must match the route the plugin registers.')
                 ->end()
+                ->arrayNode('allowed_origins')
+                    ->info('Browser origins (scheme://host[:port]) allowed to call the MCP endpoint besides the shop itself. Requests without Origin (server-side clients) are not affected.')
+                    ->scalarPrototype()->cannotBeEmpty()->end()
+                    ->defaultValue([])
+                ->end()
                 ->enumNode('default_tool_class')
                     ->values(array_map(static fn (ToolClass $class): string => $class->value, ToolClass::cases()))
                     ->defaultValue(ToolClass::HighRisk->value)
@@ -147,6 +152,7 @@ final class KohSyliusMcpBundle extends AbstractBundle
     {
         $builder->setParameter('koh_sylius_mcp.version', (string) ($config['version'] ?? '1.0.0'));
         $builder->setParameter('koh_sylius_mcp.transport_path', (string) ($config['transport_path'] ?? '/_mcp'));
+        $builder->setParameter('koh_sylius_mcp.allowed_origins', array_values($config['allowed_origins'] ?? []));
         $builder->setParameter('koh_sylius_mcp.default_tool_class', (string) ($config['default_tool_class'] ?? ToolClass::HighRisk->value));
         $builder->setParameter('koh_sylius_mcp.tools', $config['tools'] ?? []);
         $builder->setParameter('koh_sylius_mcp.class_roles', $config['class_roles'] ?? []);

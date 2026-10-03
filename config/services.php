@@ -10,6 +10,7 @@ use Koh\SyliusAgentContracts\Http\AgentJsonResponder;
 use Koh\SyliusMcp\Agent\McpEndpointProvider;
 use Koh\SyliusMcp\Controller\McpServerCardController;
 use Koh\SyliusMcp\DependencyInjection\McpReferenceContainerPass;
+use Koh\SyliusMcp\EventSubscriber\McpOriginSubscriber;
 use Koh\SyliusMcp\Mcp\FilteredListToolsHandler;
 use Koh\SyliusMcp\Mcp\GuardedCallToolHandler;
 use Koh\SyliusMcp\Mcp\GuardedReadResourceHandler;
@@ -251,6 +252,13 @@ return static function (ContainerConfigurator $container): void {
         ])
         ->public()
         ->tag('controller.service_arguments');
+
+    $services->set(McpOriginSubscriber::class)
+        ->args([
+            param('koh_sylius_mcp.transport_path'),
+            param('koh_sylius_mcp.allowed_origins'),
+        ])
+        ->tag('kernel.event_subscriber');
 
     $services->set(McpEndpointProvider::class)
         ->args([param('koh_sylius_mcp.transport_path')])
