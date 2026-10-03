@@ -12,13 +12,20 @@ use Sylius\Component\Product\Model\ProductInterface;
 use Sylius\Component\Product\Repository\ProductRepositoryInterface;
 
 /**
- * Content-aware product search, exposed to LLM agents as an MCP tool via the
- * sylius/mcp-server-plugin (autoconfigured -> discovered at container compile).
+ * Content-aware product search, exposed to LLM agents as an MCP tool. Registered
+ * by {@see \Koh\SyliusMcp\Mcp\KohCapabilityLoader}. The attribute sits on the
+ * class, not on __invoke(): the SDK's discoverer reads __invoke() only through a
+ * class attribute and skips a method attribute there without a word — which is
+ * how this tool came to be served by nobody.
  *
  * First pass: plain Sylius product search by phrase + locale. The "content
  * aware" enrichment (matching TYPO3 CMS pages/articles to products) is wired
  * later through koh/typo3-sylius-bridge -- see the TODO below.
  */
+#[McpTool(
+    name: 'content_product_search',
+    description: 'Search shop products by phrase (content-commerce aware). Returns product code, name and slug.',
+)]
 final class ContentAwareProductSearchTool
 {
     /** Upper bound on what one tool call may return into an agent's context. */
@@ -33,10 +40,6 @@ final class ContentAwareProductSearchTool
     /**
      * @return list<array{code: string, name: string, slug: string|null}>
      */
-    #[McpTool(
-        name: 'content_product_search',
-        description: 'Search shop products by phrase (content-commerce aware). Returns product code, name and slug.',
-    )]
     public function __invoke(string $phrase, string $localeCode = 'en_US', int $limit = 10): array
     {
         // findByName() is a LIKE with no limit, so an empty phrase matches the

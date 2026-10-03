@@ -7,6 +7,7 @@ declare(strict_types=1);
 
 namespace Koh\SyliusMcp;
 
+use Koh\SyliusMcp\Policy\ToolClass;
 use Symfony\Component\Config\Definition\Configurator\DefinitionConfigurator;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
@@ -34,6 +35,28 @@ final class KohSyliusMcpBundle extends AbstractBundle
                     ->defaultValue('/_mcp')
                     ->info('Where the MCP server listens. Must match the route the plugin registers.')
                 ->end()
+                ->enumNode('default_tool_class')
+                    ->values(array_map(static fn (ToolClass $class): string => $class->value, ToolClass::cases()))
+                    ->defaultValue(ToolClass::HighRisk->value)
+                    ->info('Risk class of a tool that is neither built in nor listed under tools.')
+                ->end()
+                ->arrayNode('tools')
+                    ->info('Per-tool policy, keyed by tool name. Applies to every tool the server registers: ours, sylius/mcp-server-plugin\'s and the application\'s.')
+                    ->useAttributeAsKey('name')
+                    ->arrayPrototype()
+                        ->children()
+                            ->booleanNode('enabled')->info('false removes the tool from the server entirely.')->end()
+                            ->enumNode('class')
+                                ->values(array_map(static fn (ToolClass $class): string => $class->value, ToolClass::cases()))
+                                ->info('read, write (state customers do not see yet) or high_risk.')
+                            ->end()
+                            ->booleanNode('idempotent')->info('idempotentHint for write tools.')->end()
+                            ->booleanNode('destructive')->info('destructiveHint for write tools.')->end()
+                            ->booleanNode('untrusted')->info('The result carries text from editors, importers or customers.')->end()
+                        ->end()
+                    ->end()
+                    ->defaultValue([])
+                ->end()
             ->end();
     }
 
@@ -44,6 +67,8 @@ final class KohSyliusMcpBundle extends AbstractBundle
     {
         $builder->setParameter('koh_sylius_mcp.version', (string) ($config['version'] ?? '1.0.0'));
         $builder->setParameter('koh_sylius_mcp.transport_path', (string) ($config['transport_path'] ?? '/_mcp'));
+        $builder->setParameter('koh_sylius_mcp.default_tool_class', (string) ($config['default_tool_class'] ?? ToolClass::HighRisk->value));
+        $builder->setParameter('koh_sylius_mcp.tools', $config['tools'] ?? []);
 
         $container->import(\dirname(__DIR__).'/config/services.php');
     }

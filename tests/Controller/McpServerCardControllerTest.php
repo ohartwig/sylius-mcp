@@ -10,10 +10,13 @@ namespace Koh\SyliusMcp\Tests\Controller;
 use Koh\SyliusAgentContracts\Context\AgentContext;
 use Koh\SyliusAgentContracts\Context\AgentContextFactoryInterface;
 use Koh\SyliusAgentContracts\Http\AgentJsonResponder;
-use Koh\SyliusAgentContracts\Model\AgentSkill;
-use Koh\SyliusAgentContracts\Provider\AgentSkillProviderInterface;
-use Koh\SyliusAgentContracts\Registry\AgentSkillRegistry;
 use Koh\SyliusMcp\Controller\McpServerCardController;
+use Koh\SyliusMcp\Mcp\McpCatalogue;
+use Koh\SyliusMcp\Mcp\PolicyRegistry;
+use Koh\SyliusMcp\Policy\ToolPolicyProvider;
+use Mcp\Capability\Registry;
+use Mcp\Schema\Prompt;
+use Mcp\Schema\Tool;
 use PHPUnit\Framework\TestCase;
 use Sylius\Component\Core\Model\ChannelInterface;
 use Symfony\Component\HttpFoundation\Request;
@@ -22,7 +25,7 @@ final class McpServerCardControllerTest extends TestCase
 {
     public function testCardNamesTheServerAndItsTransport(): void
     {
-        $card = $this->card();
+        $card = $this->card(['search_products']);
 
         self::assertSame('Tabak Budde', $card['serverInfo']['name']);
         self::assertSame('1.0.0', $card['serverInfo']['version']);
@@ -30,14 +33,32 @@ final class McpServerCardControllerTest extends TestCase
         self::assertSame('streamable-http', $card['transport']['type']);
     }
 
-    public function testToolsComeFromTheSkillRegistry(): void
+    /**
+     * The card lists what the MCP registry serves — the same registry tools/list
+     * answers from — so the two cannot disagree.
+     */
+    public function testToolsComeFromTheMcpRegistry(): void
     {
-        $card = $this->card([
-            $this->provider(new AgentSkill('product-search', 'Product Search', 'Search the catalogue.')),
-            $this->provider(new AgentSkill('fetch-product', 'Fetch Product', 'Fetch one product.')),
-        ]);
+        $card = $this->card(['search_products', 'fetch_product']);
 
-        self::assertSame(['fetch-product', 'product-search'], array_column($card['tools'], 'name'));
+        self::assertSame(['fetch_product', 'search_products'], array_column($card['tools'], 'name'));
+    }
+
+    public function testASwitchedOffToolIsNotOnTheCard(): void
+    {
+        $card = $this->card(['search_products', 'complete_checkout'], ['complete_checkout' => ['enabled' => false]]);
+
+        self::assertSame(['search_products'], array_column($card['tools'], 'name'));
+    }
+
+    public function testToolsCarryTheirAnnotations(): void
+    {
+        $card = $this->card(['complete_checkout']);
+
+        self::assertSame(
+            ['readOnlyHint' => false, 'destructiveHint' => true, 'idempotentHint' => false, 'openWorldHint' => false],
+            $card['tools'][0]['annotations'],
+        );
     }
 
     /**
@@ -54,7 +75,17 @@ final class McpServerCardControllerTest extends TestCase
 
     public function testToolsCapabilityAppearsOnceThereAreTools(): void
     {
-        self::assertNotNull($this->card()['capabilities']['tools']);
+        self::assertNotNull($this->card(['search_products'])['capabilities']['tools']);
+    }
+
+    public function testPromptsAndResourcesAreAnnouncedOnlyWhenRegistered(): void
+    {
+        $card = $this->card(['search_products']);
+        self::assertNull($card['capabilities']['prompts']);
+        self::assertNull($card['capabilities']['resources']);
+
+        $card = $this->card(['search_products'], [], withPrompt: true);
+        self::assertSame(['listChanged' => false], $card['capabilities']['prompts']);
     }
 
     /** So an agent can authenticate before being refused, rather than after. */
@@ -62,51 +93,41 @@ final class McpServerCardControllerTest extends TestCase
     {
         self::assertSame(
             'https://shop.example.com/.well-known/oauth-protected-resource',
-            $this->card()['authorization']['protectedResourceMetadata'],
+            $this->card(['search_products'])['authorization']['protectedResourceMetadata'],
         );
     }
 
     /**
-     * @param list<AgentSkillProviderInterface>|null $providers
+     * @param list<string>                        $tools
+     * @param array<string, array<string, mixed>> $config
      *
      * @return array<string, mixed>
      */
-    private function card(?array $providers = null): array
+    private function card(array $tools, array $config = [], bool $withPrompt = false): array
     {
-        $channel = $this->createMock(ChannelInterface::class);
+        $channel = $this->createStub(ChannelInterface::class);
         $channel->method('getCode')->willReturn('WEB_DE');
         $channel->method('getName')->willReturn('Tabak Budde');
 
-        $factory = $this->createMock(AgentContextFactoryInterface::class);
+        $factory = $this->createStub(AgentContextFactoryInterface::class);
         $factory->method('create')->willReturn(
             new AgentContext($channel, 'https://shop.example.com', 'de_DE', ['de_DE']),
         );
 
-        $controller = new McpServerCardController(
-            new AgentSkillRegistry($providers ?? [$this->provider(
-                new AgentSkill('product-search', 'Product Search', 'Search the catalogue.'),
-            )]),
-            $factory,
-            new AgentJsonResponder(),
-        );
+        /** @var array<string, array{enabled?: bool, class?: string|null, idempotent?: bool|null, destructive?: bool|null, untrusted?: bool|null}> $config */
+        $registry = new PolicyRegistry(new Registry(), new ToolPolicyProvider($config));
+        foreach ($tools as $name) {
+            $registry->registerTool(new Tool($name, ['type' => 'object', 'properties' => []], 'Tool '.$name, null), 'Vendor\\'.$name, true);
+        }
+        if ($withPrompt) {
+            $registry->registerPrompt(new Prompt('catalogue_import'), 'Vendor\\Prompt', [], true);
+        }
+
+        $controller = new McpServerCardController(new McpCatalogue($registry), $factory, new AgentJsonResponder());
 
         /** @var array<string, mixed> $decoded */
         $decoded = json_decode((string) $controller(new Request())->getContent(), true, 512, \JSON_THROW_ON_ERROR);
 
         return $decoded;
-    }
-
-    private function provider(AgentSkill $skill): AgentSkillProviderInterface
-    {
-        return new class($skill) implements AgentSkillProviderInterface {
-            public function __construct(private AgentSkill $skill)
-            {
-            }
-
-            public function getAgentSkills(AgentContext $context): iterable
-            {
-                yield $this->skill;
-            }
-        };
     }
 }

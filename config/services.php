@@ -7,13 +7,20 @@ declare(strict_types=1);
 
 use Koh\SyliusAgentContracts\Context\AgentContextFactoryInterface;
 use Koh\SyliusAgentContracts\Http\AgentJsonResponder;
-use Koh\SyliusAgentContracts\Registry\AgentSkillRegistry;
 use Koh\SyliusMcp\Agent\McpEndpointProvider;
 use Koh\SyliusMcp\Controller\McpServerCardController;
+use Koh\SyliusMcp\Mcp\KohCapabilityLoader;
+use Koh\SyliusMcp\Mcp\McpCatalogue;
+use Koh\SyliusMcp\Mcp\PolicyRegistry;
+use Koh\SyliusMcp\Policy\ToolPolicyProvider;
+use Koh\SyliusMcp\Tool\ContentAwareProductSearchTool;
+use Koh\SyliusMcp\Tool\FetchProductTool;
+use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 
 use function Symfony\Component\DependencyInjection\Loader\Configurator\param;
 use function Symfony\Component\DependencyInjection\Loader\Configurator\service;
+use function Symfony\Component\DependencyInjection\Loader\Configurator\service_closure;
 
 return static function (ContainerConfigurator $container): void {
     $services = $container->services()
@@ -21,12 +28,46 @@ return static function (ContainerConfigurator $container): void {
         ->autowire()
         ->autoconfigure();
 
-    // The MCP tools are discovered by sylius/mcp-server-plugin through its own
-    // attribute scan, so they need no definition here.
+    // Tagged explicitly and with autoconfiguration off: the mcp-bundle's
+    // autoconfiguration would tag them as well, and a service tagged twice is
+    // yielded twice by a tagged iterator.
+    foreach ([ContentAwareProductSearchTool::class, FetchProductTool::class] as $tool) {
+        $services->set($tool)
+            ->autoconfigure(false)
+            ->arg('$productRepository', service('sylius.repository.product'))
+            ->tag('mcp.tool');
+    }
+
+    $services->set(KohCapabilityLoader::class)
+        ->autoconfigure(false)
+        ->args([service('logger')->nullOnInvalid()])
+        ->tag('mcp.loader')
+        ->tag('monolog.logger', ['channel' => 'mcp']);
+
+    $services->set(ToolPolicyProvider::class)
+        ->args([
+            param('koh_sylius_mcp.tools'),
+            param('koh_sylius_mcp.default_tool_class'),
+        ]);
+
+    $services->set(PolicyRegistry::class)
+        ->decorate('mcp.registry', invalidBehavior: ContainerInterface::IGNORE_ON_INVALID_REFERENCE)
+        ->args([
+            service('.inner'),
+            service(ToolPolicyProvider::class),
+            service('logger')->nullOnInvalid(),
+        ])
+        ->tag('monolog.logger', ['channel' => 'mcp']);
+
+    $services->set(McpCatalogue::class)
+        ->args([
+            service('mcp.registry'),
+            service_closure('mcp.server')->nullOnInvalid(),
+        ]);
 
     $services->set(McpServerCardController::class)
         ->args([
-            service(AgentSkillRegistry::class),
+            service(McpCatalogue::class),
             service(AgentContextFactoryInterface::class),
             service(AgentJsonResponder::class),
             param('koh_sylius_mcp.version'),
