@@ -1,3 +1,25 @@
+## [3.0.0](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/compare/v2.1.0...v3.0.0) (2026-10-03)
+
+### :boom: BREAKING CHANGES
+
+* browser-based MCP clients on other origins must be listed in koh_sylius_mcp.allowed_origins.
+* complete_checkout is switched off by default (handbook: no financial transactions by agents) and, when switched on, needs preview and confirmation. high_risk tools without confirm only return a preview. In the default mode create_product/import_product create disabled products, create_article does not publish, and update_product on enabled products is refused.
+
+### :sparkles: Features
+
+* **write:** allow update_product on live products ([2a0b18b](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/commit/2a0b18b1e106e7f9bde4c48b93e177c36efaf544))
+* **write:** drafts before live, dry run and confirmation for write tools ([e1defc9](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/commit/e1defc96eafb38dd019d5a2336b54001c1fd9efc))
+* **mcp:** resources, prompts, server instructions and version negotiation ([0d727a6](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/commit/0d727a6ab79e59589f1ab57cd47b68c64d74133e))
+* **audit:** audit log per tool call ([fb3a185](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/commit/fb3a1856827beb2393f4a3c8308e9827c5cc4f05))
+
+### :bug: Fixes
+
+* **http:** validate Origin at the MCP endpoint, CORS allow-list instead of * ([b34cdd4](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/commit/b34cdd497c7df65167efb2067497a1ded79b8d80))
+
+### :white_check_mark: Tests
+
+* **mcp:** cover channels, attributes and options resources and the handlers' supports() ([ef8e230](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/commit/ef8e230d2556521db189d6f0beecc2882ecaf6bf))
+
 ## [2.1.0](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/compare/v2.0.0...v2.1.0) (2026-10-03)
 
 ### :sparkles: Features
