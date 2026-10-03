@@ -15,6 +15,7 @@ use Koh\SyliusMcp\Mcp\GuardedCallToolHandler;
 use Koh\SyliusMcp\Tests\Support\McpHarness;
 use Koh\SyliusMcp\Tests\Support\McpSecurityFixtures;
 use Mcp\Capability\RegistryInterface;
+use Doctrine\Persistence\ObjectRepository;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
 use Sylius\Component\Channel\Context\ChannelContextInterface;
@@ -99,6 +100,7 @@ final class ContainerWiringTest extends TestCase
         $container->setParameter('kernel.project_dir', sys_get_temp_dir());
         $container->setParameter('kernel.cache_dir', sys_get_temp_dir().'/koh-mcp-test');
         $container->setParameter('kernel.build_dir', sys_get_temp_dir().'/koh-mcp-test');
+        $container->setParameter('kernel.secret', 'test-secret');
 
         $synthetic = $this->syntheticServices($scopes);
         foreach (array_keys($synthetic) as $id) {
@@ -154,6 +156,9 @@ final class ContainerWiringTest extends TestCase
             'security.token_storage' => $storage,
             'security.authorization_checker' => self::checker(['ROLE_ADMINISTRATION_ACCESS']),
             'sylius.repository.product' => $this->createStub(ProductRepositoryInterface::class),
+            'sylius.repository.channel' => $this->createStub(ObjectRepository::class),
+            'sylius.repository.taxon' => $this->createStub(ObjectRepository::class),
+            'sylius.repository.order' => $this->createStub(ObjectRepository::class),
             'sylius.context.channel' => $this->createStub(ChannelContextInterface::class),
             AgentContextFactoryInterface::class => $this->createStub(AgentContextFactoryInterface::class),
             AgentJsonResponder::class => new AgentJsonResponder(),

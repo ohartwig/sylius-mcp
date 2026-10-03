@@ -23,6 +23,11 @@ use Koh\SyliusMcp\Security\McpCallerResolver;
 use Koh\SyliusMcp\Security\ToolAccessDecider;
 use Koh\SyliusMcp\Tool\ContentAwareProductSearchTool;
 use Koh\SyliusMcp\Tool\FetchProductTool;
+use Koh\SyliusMcp\Write\ConfirmationTokens;
+use Koh\SyliusMcp\Write\DraftPolicy;
+use Koh\SyliusMcp\Write\Preview\CheckoutPreview;
+use Koh\SyliusMcp\Write\Preview\ProductWritePreview;
+use Koh\SyliusMcp\Write\WriteGate;
 use Mcp\Capability\Registry\ReferenceHandler;
 use Mcp\Server\Handler\Request\CallToolHandler;
 use Symfony\Component\DependencyInjection\ContainerInterface;
@@ -31,6 +36,7 @@ use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigura
 use function Symfony\Component\DependencyInjection\Loader\Configurator\param;
 use function Symfony\Component\DependencyInjection\Loader\Configurator\service;
 use function Symfony\Component\DependencyInjection\Loader\Configurator\service_closure;
+use function Symfony\Component\DependencyInjection\Loader\Configurator\tagged_iterator;
 
 return static function (ContainerConfigurator $container): void {
     $services = $container->services()
@@ -108,6 +114,7 @@ return static function (ContainerConfigurator $container): void {
             service(McpCallerResolver::class),
             service(UntrustedContentMarker::class),
             service(ToolCallAuditor::class),
+            service(WriteGate::class),
             service('logger')->nullOnInvalid(),
         ])
         ->tag('mcp.request_handler')
@@ -133,6 +140,41 @@ return static function (ContainerConfigurator $container): void {
         ->args([
             param('koh_sylius_mcp.tools'),
             param('koh_sylius_mcp.default_tool_class'),
+            param('koh_sylius_mcp.writes.confirm_high_risk'),
+        ]);
+
+    $services->set(DraftPolicy::class)
+        ->args([
+            param('koh_sylius_mcp.writes.live'),
+            param('koh_sylius_mcp.writes.drafts'),
+            service('sylius.repository.product')->nullOnInvalid(),
+            service('doctrine.orm.entity_manager')->nullOnInvalid(),
+        ]);
+
+    $services->set(ConfirmationTokens::class)
+        ->args([
+            param('kernel.secret'),
+            param('koh_sylius_mcp.writes.confirmation_ttl'),
+            service('cache.app')->nullOnInvalid(),
+        ]);
+
+    $services->set(ProductWritePreview::class)
+        ->args([
+            service('sylius.repository.product'),
+            service('sylius.repository.channel'),
+            service('sylius.repository.taxon'),
+        ])
+        ->tag('koh_sylius_mcp.tool_preview');
+
+    $services->set(CheckoutPreview::class)
+        ->args([service('sylius.repository.order')])
+        ->tag('koh_sylius_mcp.tool_preview');
+
+    $services->set(WriteGate::class)
+        ->args([
+            service(DraftPolicy::class),
+            service(ConfirmationTokens::class),
+            tagged_iterator('koh_sylius_mcp.tool_preview'),
         ]);
 
     $services->set(PolicyRegistry::class)

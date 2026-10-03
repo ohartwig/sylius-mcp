@@ -120,6 +120,64 @@ The plugin's tools ask the shop API (`/api/v2/shop`) anonymously, as the
 plugin does; that API shows the same public catalogue and guest carts. Who may
 call them is decided here, before the call.
 
+### Writes: drafts, preview, confirmation
+
+The catalogue and magazine write tools (`create_product`, `import_product`,
+`update_product`, `create_article`, `update_article`) belong to the commerce
+application, not to this package. They are not duplicated here; the policy
+applies to them by name, the same way it applies to the plugin's tools.
+
+**Drafts before live** (`writes.live: false`, the default). Sylius has no
+workspace, but the enabled flag is a draft state: a disabled product is in
+the admin and not in the shop.
+
+| Tool | In draft mode |
+|---|---|
+| `create_product`, `import_product` | the product a call creates is disabled right after (the tool itself enables it) |
+| `update_product` | refused while the product is enabled — an edit to a live product is visible at once |
+| `create_article` | `publish` forced to `false` |
+| `update_article` | `enabled: true` refused — an agent edits, a person publishes |
+
+Publishing is a person's step in the admin. Rules for other tools:
+
+```yaml
+koh_sylius_mcp:
+    writes:
+        live: false
+        drafts:
+            some_app_tool:
+                force: { visible: false }
+                refuse: { publish: true }
+                disable_created_product: code     # argument holding the product code
+                refuse_live_product: code
+```
+
+**Dry run.** Every `write` and `high_risk` tool takes `dryRun: true`: the call
+returns what it would do and does nothing. For the product tools the preview
+says whether the product exists and is live, whether channel and taxon exist,
+and which texts change from what to what; for `complete_checkout` it lists
+items, total, payment and shipping.
+
+**Confirmation** (`writes.confirm_high_risk: true`, the default). A
+`high_risk` tool called without `confirm` returns the preview and a confirm
+token. Only a second call with exactly the same arguments plus
+`confirm: <token>` runs the tool. The token is bound to tool, arguments,
+administrator and access token, expires after `writes.confirmation_ttl`
+seconds (300) and works once (when `cache.app` is available). This is the
+stand-in for MCP elicitation, which mcp/sdk 0.3 does not implement.
+`tools.<name>.confirm` overrides it per tool.
+
+**`complete_checkout` is switched off.** It places a binding order, and the
+handbook does not permit financial transactions by agents. A shop that wants
+it anyway switches it on explicitly — it is then high risk, so every order
+needs a preview and a confirmation:
+
+```yaml
+koh_sylius_mcp:
+    tools:
+        complete_checkout: { enabled: true }
+```
+
 ### Audit trail
 
 Every `tools/call` — allowed, refused, failed, or for a tool that does not

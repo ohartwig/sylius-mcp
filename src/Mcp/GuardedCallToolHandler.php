@@ -12,6 +12,8 @@ use Koh\SyliusMcp\Output\UntrustedContentMarker;
 use Koh\SyliusMcp\Policy\ToolPolicyProvider;
 use Koh\SyliusMcp\Security\McpCallerResolver;
 use Koh\SyliusMcp\Security\ToolAccessDecider;
+use Koh\SyliusMcp\Write\WriteDecision;
+use Koh\SyliusMcp\Write\WriteGate;
 use Mcp\Capability\RegistryInterface;
 use Mcp\Exception\ToolNotFoundException;
 use Mcp\Schema\Content\TextContent;
@@ -41,6 +43,9 @@ use Psr\Log\NullLogger;
  * marked as data ({@see UntrustedContentMarker}), and every call — allowed,
  * refused or failed — leaves one audit record ({@see ToolCallAuditor}).
  *
+ * Write tools pass the {@see WriteGate} in between: draft rules, dry run,
+ * confirmation.
+ *
  * @implements RequestHandlerInterface<CallToolResult>
  */
 final class GuardedCallToolHandler implements RequestHandlerInterface
@@ -54,6 +59,7 @@ final class GuardedCallToolHandler implements RequestHandlerInterface
         private readonly McpCallerResolver $callers,
         private readonly UntrustedContentMarker $untrusted = new UntrustedContentMarker(),
         private readonly ToolCallAuditor $auditor = new ToolCallAuditor(),
+        private readonly ?WriteGate $writes = null,
         private readonly LoggerInterface $logger = new NullLogger(),
     ) {
     }
@@ -96,7 +102,37 @@ final class GuardedCallToolHandler implements RequestHandlerInterface
         }
 
         try {
-            $response = $this->inner->handle($request, $session);
+            $gate = null !== $this->writes
+                ? $this->writes->before($policy, $caller, $request->arguments)
+                : WriteDecision::execute($request->arguments);
+        } catch (\Throwable $e) {
+            // A preview or draft check reads the database. Its failure is
+            // reported like a failing tool: logged in full, answered without
+            // the exception text, which can carry SQL and connection details.
+            $this->logger->error('MCP write gate failed for {tool}', ['tool' => $request->name, 'exception' => $e]);
+            $this->auditor->record($request->name, $policy, $caller, $request->arguments, 'error', $startedAt, ['error' => $e::class]);
+
+            return Error::forInternalError('Error while executing tool', $request->getId());
+        }
+
+        if (null !== $gate->refusal) {
+            $this->auditor->record($request->name, $policy, $caller, $request->arguments, (string) $gate->outcome, $startedAt, ['reason' => $gate->refusal]);
+
+            return new Response($request->getId(), CallToolResult::error([new TextContent($gate->refusal)]));
+        }
+
+        if (null !== $gate->preview) {
+            $this->auditor->record($request->name, $policy, $caller, $request->arguments, 'preview', $startedAt);
+            $result = new CallToolResult([new TextContent($gate->preview)], structuredContent: $gate->preview);
+
+            // The preview quotes shop data — current descriptions, names.
+            return new Response($request->getId(), $policy->untrusted ? $this->untrusted->mark($result) : $result);
+        }
+
+        $call = (new CallToolRequest($request->name, $gate->arguments))->withId($request->getId());
+
+        try {
+            $response = $this->inner->handle($call, $session);
         } catch (\Throwable $e) {
             $this->auditor->record($request->name, $policy, $caller, $request->arguments, 'error', $startedAt, ['error' => $e::class]);
 
@@ -109,12 +145,33 @@ final class GuardedCallToolHandler implements RequestHandlerInterface
             return $response;
         }
 
-        $this->auditor->record($request->name, $policy, $caller, $request->arguments, $response->result->isError ? 'tool_error' : 'ok', $startedAt);
+        $result = $response->result;
+        $this->auditor->record($request->name, $policy, $caller, $request->arguments, $result->isError ? 'tool_error' : 'ok', $startedAt, $gate->confirmed ? ['confirmed' => true] : []);
 
-        if ($policy->untrusted && !$response->result->isError) {
-            return new Response($response->getId(), $this->untrusted->mark($response->result, null !== $reference->tool->outputSchema));
+        if ($result->isError) {
+            return $response;
         }
 
-        return $response;
+        $notes = $gate->notes;
+        $after = $this->writes?->after($policy, $gate->arguments, $result->structuredContent);
+        if (null !== $after) {
+            $notes[] = $after;
+        }
+
+        if ($policy->untrusted) {
+            $result = $this->untrusted->mark($result, null !== $reference->tool->outputSchema);
+        }
+
+        // Our notes go after the fence: they are the server's words, not shop data.
+        if ([] !== $notes) {
+            $result = new CallToolResult(
+                [...$result->content, new TextContent(implode("\n", $notes))],
+                $result->isError,
+                $result->structuredContent,
+                [...($result->meta ?? []), 'koh/notes' => $notes],
+            );
+        }
+
+        return new Response($response->getId(), $result);
     }
 }

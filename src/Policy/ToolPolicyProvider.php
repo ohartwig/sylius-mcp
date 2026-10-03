@@ -21,7 +21,7 @@ namespace Koh\SyliusMcp\Policy;
  */
 final class ToolPolicyProvider
 {
-    /** @var array<string, array{class: ToolClass, idempotent?: bool, destructive?: bool}> */
+    /** @var array<string, array{class: ToolClass, idempotent?: bool, destructive?: bool, enabled?: bool}> */
     private const BUILT_IN = [
         // sylius/mcp-server-plugin — read
         'search_products' => ['class' => ToolClass::Read],
@@ -41,8 +41,9 @@ final class ToolPolicyProvider
         'select_payment_method' => ['class' => ToolClass::Write, 'idempotent' => true, 'destructive' => true],
         'select_shipping_method' => ['class' => ToolClass::Write, 'idempotent' => true, 'destructive' => true],
         // Places a real order. Financial transactions are not permitted for
-        // agents (handbook, agent governance), hence high risk.
-        'complete_checkout' => ['class' => ToolClass::HighRisk, 'idempotent' => false, 'destructive' => true],
+        // agents (handbook, agent governance): high risk, and switched off
+        // unless the application switches it on.
+        'complete_checkout' => ['class' => ToolClass::HighRisk, 'idempotent' => false, 'destructive' => true, 'enabled' => false],
         // koh/sylius-mcp
         'content_product_search' => ['class' => ToolClass::Read],
         // commerce application (src/Mcp/Tool)
@@ -60,11 +61,13 @@ final class ToolPolicyProvider
     private readonly ToolClass $defaultClass;
 
     /**
-     * @param array<string, array{enabled?: bool, class?: string|null, idempotent?: bool|null, destructive?: bool|null, untrusted?: bool|null}> $overrides
+     * @param array<string, array{enabled?: bool, class?: string|null, idempotent?: bool|null, destructive?: bool|null, untrusted?: bool|null, confirm?: bool|null}> $overrides
+     * @param bool $confirmHighRisk whether high-risk tools need preview and confirmation unless a tool says otherwise
      */
     public function __construct(
         private readonly array $overrides = [],
         ToolClass|string $defaultClass = ToolClass::HighRisk,
+        private readonly bool $confirmHighRisk = true,
     ) {
         $this->defaultClass = $defaultClass instanceof ToolClass ? $defaultClass : ToolClass::from($defaultClass);
     }
@@ -92,11 +95,14 @@ final class ToolPolicyProvider
         return new ToolPolicy(
             name: $name,
             class: $class,
-            enabled: $override['enabled'] ?? true,
+            enabled: $override['enabled'] ?? $builtIn['enabled'] ?? true,
             idempotent: $override['idempotent'] ?? $builtIn['idempotent'] ?? null,
             destructive: $override['destructive'] ?? $builtIn['destructive'] ?? null,
             untrusted: $override['untrusted'] ?? true,
             unknown: null === $builtIn && [] === $override,
+            // Only write tools can be confirmed: a read tool changes nothing
+            // there would be to confirm.
+            confirm: $class->isWrite() && ($override['confirm'] ?? (ToolClass::HighRisk === $class && $this->confirmHighRisk)),
         );
     }
 }
