@@ -22,7 +22,13 @@ use Mcp\Server\Handler\Request\ReadResourceHandler;
 use Mcp\Server\Session\InMemorySessionStore;
 use Mcp\Server\Session\Session;
 use PHPUnit\Framework\TestCase;
+use Sylius\Component\Core\Model\Channel;
 use Sylius\Component\Core\Model\Taxon;
+use Sylius\Component\Currency\Model\Currency;
+use Sylius\Component\Locale\Model\Locale;
+use Sylius\Component\Product\Model\ProductAttribute;
+use Sylius\Component\Product\Model\ProductOption;
+use Sylius\Component\Product\Model\ProductOptionValue;
 
 final class CatalogueResourcesTest extends TestCase
 {
@@ -56,6 +62,56 @@ final class CatalogueResourcesTest extends TestCase
         self::assertFalse($json['truncated']);
     }
 
+    public function testChannelsListCodesLocalesAndCurrencies(): void
+    {
+        $locale = new Locale();
+        $locale->setCode('de_DE');
+        $currency = new Currency();
+        $currency->setCode('EUR');
+        $channel = new Channel();
+        $channel->setCode('budde');
+        $channel->setName('Budde');
+        $channel->setHostname('shop.example');
+        $channel->setDefaultLocale($locale);
+        $channel->addLocale($locale);
+        $channel->setBaseCurrency($currency);
+        $channel->addCurrency($currency);
+
+        $json = json_decode($this->resources(channels: [$channel, new \stdClass()])->channels()->text, true);
+
+        self::assertSame([[
+            'code' => 'budde', 'name' => 'Budde', 'hostname' => 'shop.example', 'enabled' => true,
+            'defaultLocale' => 'de_DE', 'locales' => ['de_DE'], 'baseCurrency' => 'EUR', 'currencies' => ['EUR'], 'menuTaxon' => null,
+        ]], $json['items']);
+    }
+
+    public function testAttributesAndOptionsAreListedByCode(): void
+    {
+        $attribute = new ProductAttribute();
+        $attribute->setCurrentLocale('de_DE');
+        $attribute->setFallbackLocale('de_DE');
+        $attribute->setCode('strength');
+        $attribute->setName('Stärke');
+        $attribute->setType('integer');
+
+        $value = new ProductOptionValue();
+        $value->setCurrentLocale('de_DE');
+        $value->setFallbackLocale('de_DE');
+        $value->setCode('box');
+        $value->setValue('Kiste');
+        $option = new ProductOption();
+        $option->setCurrentLocale('de_DE');
+        $option->setFallbackLocale('de_DE');
+        $option->setCode('packaging');
+        $option->setName('Verpackung');
+        $option->addValue($value);
+
+        $resources = $this->resources(attributes: [$attribute, new \stdClass()], options: [$option, new \stdClass()]);
+
+        self::assertSame([['code' => 'strength', 'name' => 'Stärke', 'type' => 'integer', 'translatable' => true]], json_decode($resources->attributes()->text, true)['items']);
+        self::assertSame([['code' => 'packaging', 'name' => 'Verpackung', 'values' => [['code' => 'box', 'value' => 'Kiste']]]], json_decode($resources->options()->text, true)['items']);
+    }
+
     public function testReadingNeedsAReadScope(): void
     {
         $registry = new Registry();
@@ -67,20 +123,28 @@ final class CatalogueResourcesTest extends TestCase
         $request = ReadResourceRequest::fromArray(['jsonrpc' => '2.0', 'id' => 1, 'method' => 'resources/read', 'params' => ['uri' => 'sylius://taxons']]);
         $session = new Session(new InMemorySessionStore());
 
+        self::assertTrue((new GuardedReadResourceHandler($inner, self::callers()))->supports($request));
         self::assertInstanceOf(Error::class, (new GuardedReadResourceHandler($inner, self::callers(scopes: [])))->handle($request, $session));
         self::assertInstanceOf(Error::class, (new GuardedReadResourceHandler($inner, self::callers(user: null)))->handle($request, $session));
         self::assertInstanceOf(Response::class, (new GuardedReadResourceHandler($inner, self::callers(scopes: ['mcp:read'])))->handle($request, $session));
     }
 
-    /** @param list<Taxon> $taxons */
-    private function resources(array $taxons = []): CatalogueResources
+    /**
+     * @param list<object> $taxons
+     * @param list<object> $channels
+     * @param list<object> $attributes
+     * @param list<object> $options
+     */
+    private function resources(array $taxons = [], array $channels = [], array $attributes = [], array $options = []): CatalogueResources
     {
-        $taxonRepository = $this->createStub(ObjectRepository::class);
-        $taxonRepository->method('findBy')->willReturn($taxons);
-        $empty = $this->createStub(ObjectRepository::class);
-        $empty->method('findBy')->willReturn([]);
+        $repository = function (array $rows): ObjectRepository {
+            $repository = $this->createStub(ObjectRepository::class);
+            $repository->method('findBy')->willReturn($rows);
 
-        return new CatalogueResources($empty, $taxonRepository, $empty, $empty);
+            return $repository;
+        };
+
+        return new CatalogueResources($repository($channels), $repository($taxons), $repository($attributes), $repository($options));
     }
 
     private function taxon(string $code, string $name): Taxon

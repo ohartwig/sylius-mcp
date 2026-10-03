@@ -54,6 +54,8 @@ final class NegotiatingInitializeHandlerTest extends TestCase
             'capabilities' => [],
             'clientInfo' => ['name' => 'client', 'version' => '1'],
         ]]);
+        self::assertTrue($handler->supports($request));
+        self::assertSame('2025-11-25', NegotiatingInitializeHandler::negotiate('garbage')->value);
         $response = $handler->handle($request, new Session(new InMemorySessionStore()));
         self::assertInstanceOf(Response::class, $response);
         self::assertInstanceOf(InitializeResult::class, $response->result);
