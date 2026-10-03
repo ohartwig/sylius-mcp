@@ -10,7 +10,12 @@ namespace Koh\SyliusMcp\Tests;
 use Koh\SyliusMcp\Agent\McpEndpointProvider;
 use Koh\SyliusMcp\Controller\McpServerCardController;
 use Koh\SyliusMcp\KohSyliusMcpBundle;
+use Koh\SyliusMcp\Mcp\KohCapabilityLoader;
+use Koh\SyliusMcp\Mcp\PolicyRegistry;
+use Koh\SyliusMcp\Tool\ContentAwareProductSearchTool;
+use Koh\SyliusMcp\Tool\FetchProductTool;
 use PHPUnit\Framework\TestCase;
+use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 
 final class KohSyliusMcpBundleTest extends TestCase
@@ -56,6 +61,41 @@ final class KohSyliusMcpBundleTest extends TestCase
 
         self::assertTrue($container->hasDefinition(McpServerCardController::class));
         self::assertTrue($container->hasDefinition(McpEndpointProvider::class));
+    }
+
+    public function testToolPolicyConfigurationReachesTheContainer(): void
+    {
+        $container = $this->load([
+            'default_tool_class' => 'write',
+            'tools' => ['complete_checkout' => ['enabled' => false], 'create_order' => ['class' => 'high_risk']],
+        ]);
+
+        self::assertSame('write', $container->getParameter('koh_sylius_mcp.default_tool_class'));
+        self::assertSame(
+            ['complete_checkout' => ['enabled' => false, 'roles' => []], 'create_order' => ['class' => 'high_risk', 'roles' => []]],
+            $container->getParameter('koh_sylius_mcp.tools'),
+        );
+    }
+
+    public function testAnUnknownToolClassIsRejected(): void
+    {
+        $this->expectException(InvalidConfigurationException::class);
+
+        $this->load(['tools' => ['create_order' => ['class' => 'harmless']]]);
+    }
+
+    /**
+     * The policy registry only works as a decorator of the registry the server
+     * builds from, and our tools only exist once the loader is tagged.
+     */
+    public function testThePolicyRegistryDecoratesTheMcpRegistryAndTheLoaderIsTagged(): void
+    {
+        $container = $this->load([]);
+
+        self::assertSame('mcp.registry', $container->getDefinition(PolicyRegistry::class)->getDecoratedService()[0] ?? null);
+        self::assertTrue($container->getDefinition(KohCapabilityLoader::class)->hasTag('mcp.loader'));
+        self::assertTrue($container->getDefinition(FetchProductTool::class)->hasTag('mcp.tool'));
+        self::assertTrue($container->getDefinition(ContentAwareProductSearchTool::class)->hasTag('mcp.tool'));
     }
 
     /**
