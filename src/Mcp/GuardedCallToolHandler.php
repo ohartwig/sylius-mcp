@@ -7,6 +7,7 @@ declare(strict_types=1);
 
 namespace Koh\SyliusMcp\Mcp;
 
+use Koh\SyliusMcp\Output\UntrustedContentMarker;
 use Koh\SyliusMcp\Policy\ToolPolicyProvider;
 use Koh\SyliusMcp\Security\McpCallerResolver;
 use Koh\SyliusMcp\Security\ToolAccessDecider;
@@ -35,6 +36,9 @@ use Psr\Log\NullLogger;
  * A refusal is a tool result with isError, not a JSON-RPC error: the agent
  * should read why, not see a transport failure.
  *
+ * On the way out, the result of a tool whose policy says `untrusted` is
+ * marked as data ({@see UntrustedContentMarker}).
+ *
  * @implements RequestHandlerInterface<CallToolResult>
  */
 final class GuardedCallToolHandler implements RequestHandlerInterface
@@ -46,6 +50,7 @@ final class GuardedCallToolHandler implements RequestHandlerInterface
         private readonly ToolPolicyProvider $policies,
         private readonly ToolAccessDecider $access,
         private readonly McpCallerResolver $callers,
+        private readonly UntrustedContentMarker $untrusted = new UntrustedContentMarker(),
         private readonly LoggerInterface $logger = new NullLogger(),
     ) {
     }
@@ -61,14 +66,15 @@ final class GuardedCallToolHandler implements RequestHandlerInterface
         \assert($request instanceof CallToolRequest);
 
         try {
-            $this->registry->getTool($request->name);
+            $reference = $this->registry->getTool($request->name);
         } catch (ToolNotFoundException) {
             // The SDK's answer for an unknown tool is the right one.
             return $this->inner->handle($request, $session);
         }
 
+        $policy = $this->policies->get($request->name);
         $caller = $this->callers->resolve();
-        $decision = $this->access->decide($this->policies->get($request->name), $caller);
+        $decision = $this->access->decide($policy, $caller);
 
         if (!$decision->allowed) {
             $this->logger->warning('MCP tool call refused: {tool} for {user}: {reason}', [
@@ -82,6 +88,12 @@ final class GuardedCallToolHandler implements RequestHandlerInterface
             ]));
         }
 
-        return $this->inner->handle($request, $session);
+        $response = $this->inner->handle($request, $session);
+
+        if ($policy->untrusted && $response instanceof Response && !$response->result->isError) {
+            return new Response($response->getId(), $this->untrusted->mark($response->result, null !== $reference->tool->outputSchema));
+        }
+
+        return $response;
     }
 }

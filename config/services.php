@@ -15,6 +15,7 @@ use Koh\SyliusMcp\Mcp\GuardedCallToolHandler;
 use Koh\SyliusMcp\Mcp\KohCapabilityLoader;
 use Koh\SyliusMcp\Mcp\McpCatalogue;
 use Koh\SyliusMcp\Mcp\PolicyRegistry;
+use Koh\SyliusMcp\Output\UntrustedContentMarker;
 use Koh\SyliusMcp\Policy\ToolPolicyProvider;
 use Koh\SyliusMcp\Security\CatalogueVisibility;
 use Koh\SyliusMcp\Security\McpCallerResolver;
@@ -46,6 +47,8 @@ return static function (ContainerConfigurator $container): void {
             ->arg('$visibility', service(CatalogueVisibility::class))
             ->tag('mcp.tool');
     }
+
+    $services->set(UntrustedContentMarker::class);
 
     $services->set(McpCallerResolver::class)
         ->args([
@@ -93,6 +96,7 @@ return static function (ContainerConfigurator $container): void {
             service(ToolPolicyProvider::class),
             service(ToolAccessDecider::class),
             service(McpCallerResolver::class),
+            service(UntrustedContentMarker::class),
             service('logger')->nullOnInvalid(),
         ])
         ->tag('mcp.request_handler')

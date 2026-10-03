@@ -86,7 +86,8 @@ final class ContainerWiringTest extends TestCase
         $result = self::callTool($call, 'fetch_channel', ['code' => 'WEB']);
 
         self::assertFalse($result->isError, self::text($result));
-        self::assertSame('{"code":"WEB"}', self::text($result));
+        self::assertStringContainsString("\n{\"code\":\"WEB\"}\n", self::text($result));
+        self::assertStringStartsWith('[BEGIN UNTRUSTED SHOP DATA', self::text($result), 'plugin output is marked as well');
     }
 
     /** @param list<string> $scopes */
