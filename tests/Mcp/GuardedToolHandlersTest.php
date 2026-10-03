@@ -82,6 +82,36 @@ final class GuardedToolHandlersTest extends TestCase
         self::assertFalse(self::callTool($handler, 'search_products')->isError);
     }
 
+    /** Shop content reaches the agent fenced as data. */
+    public function testResultsOfUntrustedToolsAreMarked(): void
+    {
+        $result = self::callTool($this->call(self::callers()), 'search_products', ['code' => 'MUG']);
+
+        self::assertStringStartsWith('[BEGIN UNTRUSTED SHOP DATA ', self::text($result));
+    }
+
+    public function testATrustedToolIsLeftUnmarked(): void
+    {
+        $policies = new ToolPolicyProvider(['search_products' => ['untrusted' => false]]);
+        $handler = new GuardedCallToolHandler(
+            $this->registry,
+            new CallToolHandler($this->registry, new ReferenceHandler()),
+            $policies,
+            self::decider(),
+            self::callers(),
+        );
+
+        self::assertStringStartsNotWith('[BEGIN UNTRUSTED', self::text(self::callTool($handler, 'search_products')));
+    }
+
+    /** A refusal is our own text, not shop data. */
+    public function testRefusalsAreNotMarked(): void
+    {
+        $result = self::callTool($this->call(self::callers(scopes: ['mcp:read'])), 'update_product');
+
+        self::assertStringStartsWith('Access denied', self::text($result));
+    }
+
     public function testAnUnknownToolGetsTheSdksAnswer(): void
     {
         $handler = $this->call(self::callers());
