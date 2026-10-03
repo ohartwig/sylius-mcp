@@ -8,6 +8,7 @@ declare(strict_types=1);
 namespace Koh\SyliusMcp;
 
 use Koh\SyliusMcp\DependencyInjection\McpReferenceContainerPass;
+use Koh\SyliusMcp\Mcp\ServerInstructions;
 use Koh\SyliusMcp\Policy\ToolClass;
 use Koh\SyliusMcp\Security\ToolAccessDecider;
 use Symfony\Component\Config\Definition\Configurator\DefinitionConfigurator;
@@ -117,6 +118,17 @@ final class KohSyliusMcpBundle extends AbstractBundle
                     ->defaultValue([])
                 ->end()
             ->end();
+    }
+
+    /**
+     * Server instructions, unless the application sets mcp.instructions
+     * itself: prepended configuration is overridden by the application's.
+     */
+    public function prependExtension(ContainerConfigurator $container, ContainerBuilder $builder): void
+    {
+        if ($builder->hasExtension('mcp')) {
+            $builder->prependExtensionConfig('mcp', ['instructions' => ServerInstructions::TEXT]);
+        }
     }
 
     public function build(ContainerBuilder $container): void

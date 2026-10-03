@@ -27,7 +27,7 @@ use Psr\Log\NullLogger;
 final class KohCapabilityLoader implements LoaderInterface
 {
     /** Relative to the package root. */
-    public const DIRECTORIES = ['src/Tool'];
+    public const DIRECTORIES = ['src/Tool', 'src/Resource', 'src/Prompt'];
 
     public function __construct(
         private readonly LoggerInterface $logger = new NullLogger(),
