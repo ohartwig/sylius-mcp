@@ -12,9 +12,14 @@ use Koh\SyliusAgentContracts\Http\AgentJsonResponder;
 use Koh\SyliusMcp\KohSyliusMcpBundle;
 use Koh\SyliusMcp\Mcp\FilteredListToolsHandler;
 use Koh\SyliusMcp\Mcp\GuardedCallToolHandler;
+use Koh\SyliusMcp\Mcp\NegotiatingInitializeHandler;
+use Mcp\Schema\Request\InitializeRequest;
+use Mcp\Server\Session\InMemorySessionStore;
+use Mcp\Server\Session\Session;
 use Koh\SyliusMcp\Tests\Support\McpHarness;
 use Koh\SyliusMcp\Tests\Support\McpSecurityFixtures;
 use Mcp\Capability\RegistryInterface;
+use Doctrine\Persistence\ObjectRepository;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\NullLogger;
 use Sylius\Component\Channel\Context\ChannelContextInterface;
@@ -90,6 +95,30 @@ final class ContainerWiringTest extends TestCase
         self::assertStringStartsWith('[BEGIN UNTRUSTED SHOP DATA', self::text($result), 'plugin output is marked as well');
     }
 
+    /**
+     * initialize is answered by our handler: the client's version echoed,
+     * the server instructions sent, resources and prompts announced.
+     */
+    public function testInitializeNegotiatesAndSendsInstructions(): void
+    {
+        $container = $this->container();
+        $container->get('mcp.server');
+
+        /** @var NegotiatingInitializeHandler $initialize */
+        $initialize = $container->get(NegotiatingInitializeHandler::class);
+        $request = InitializeRequest::fromArray(['jsonrpc' => '2.0', 'id' => 1, 'method' => 'initialize', 'params' => [
+            'protocolVersion' => '2025-11-25', 'capabilities' => [], 'clientInfo' => ['name' => 'c', 'version' => '1'],
+        ]]);
+        $response = $initialize->handle($request, new Session(new InMemorySessionStore()));
+        /** @var array<string, mixed> $result */
+        $result = json_decode((string) json_encode($response->result), true);
+
+        self::assertSame('2025-11-25', $result['protocolVersion']);
+        self::assertStringContainsString('UNTRUSTED SHOP DATA', (string) $result['instructions']);
+        self::assertArrayHasKey('resources', $result['capabilities']);
+        self::assertArrayHasKey('prompts', $result['capabilities']);
+    }
+
     /** @param list<string> $scopes */
     private function container(array $scopes = ['mcp']): ContainerBuilder
     {
@@ -99,6 +128,7 @@ final class ContainerWiringTest extends TestCase
         $container->setParameter('kernel.project_dir', sys_get_temp_dir());
         $container->setParameter('kernel.cache_dir', sys_get_temp_dir().'/koh-mcp-test');
         $container->setParameter('kernel.build_dir', sys_get_temp_dir().'/koh-mcp-test');
+        $container->setParameter('kernel.secret', 'test-secret');
 
         $synthetic = $this->syntheticServices($scopes);
         foreach (array_keys($synthetic) as $id) {
@@ -118,7 +148,7 @@ final class ContainerWiringTest extends TestCase
         $container->addCompilerPass(new class implements CompilerPassInterface {
             public function process(ContainerBuilder $container): void
             {
-                foreach (['mcp.server', 'mcp.registry', FilteredListToolsHandler::class, GuardedCallToolHandler::class] as $id) {
+                foreach (['mcp.server', 'mcp.registry', FilteredListToolsHandler::class, GuardedCallToolHandler::class, NegotiatingInitializeHandler::class] as $id) {
                     $container->findDefinition($id)->setPublic(true);
                 }
                 $container->getAlias('mcp.registry')->setPublic(true);
@@ -154,6 +184,11 @@ final class ContainerWiringTest extends TestCase
             'security.token_storage' => $storage,
             'security.authorization_checker' => self::checker(['ROLE_ADMINISTRATION_ACCESS']),
             'sylius.repository.product' => $this->createStub(ProductRepositoryInterface::class),
+            'sylius.repository.channel' => $this->createStub(ObjectRepository::class),
+            'sylius.repository.taxon' => $this->createStub(ObjectRepository::class),
+            'sylius.repository.order' => $this->createStub(ObjectRepository::class),
+            'sylius.repository.product_attribute' => $this->createStub(ObjectRepository::class),
+            'sylius.repository.product_option' => $this->createStub(ObjectRepository::class),
             'sylius.context.channel' => $this->createStub(ChannelContextInterface::class),
             AgentContextFactoryInterface::class => $this->createStub(AgentContextFactoryInterface::class),
             AgentJsonResponder::class => new AgentJsonResponder(),

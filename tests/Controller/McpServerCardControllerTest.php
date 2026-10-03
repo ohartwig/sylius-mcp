@@ -53,10 +53,10 @@ final class McpServerCardControllerTest extends TestCase
 
     public function testToolsCarryTheirAnnotations(): void
     {
-        $card = $this->card(['complete_checkout']);
+        $card = $this->card(['update_product']);
 
         self::assertSame(
-            ['readOnlyHint' => false, 'destructiveHint' => true, 'idempotentHint' => false, 'openWorldHint' => false],
+            ['readOnlyHint' => false, 'destructiveHint' => true, 'idempotentHint' => true, 'openWorldHint' => false],
             $card['tools'][0]['annotations'],
         );
     }

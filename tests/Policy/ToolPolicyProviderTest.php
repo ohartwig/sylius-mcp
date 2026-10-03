@@ -23,6 +23,22 @@ final class ToolPolicyProviderTest extends TestCase
         self::assertSame(ToolClass::HighRisk, $policies->get('complete_checkout')->class);
     }
 
+    /** Financial transactions are not permitted for agents (handbook). */
+    public function testCheckoutIsSwitchedOffUnlessTheApplicationSwitchesItOn(): void
+    {
+        self::assertFalse((new ToolPolicyProvider())->get('complete_checkout')->enabled);
+        self::assertTrue((new ToolPolicyProvider(['complete_checkout' => ['enabled' => true]]))->get('complete_checkout')->enabled);
+    }
+
+    public function testHighRiskToolsNeedConfirmationAndReadToolsNever(): void
+    {
+        self::assertTrue((new ToolPolicyProvider())->get('update_product')->confirm);
+        self::assertFalse((new ToolPolicyProvider())->get('add_item_to_order')->confirm);
+        self::assertFalse((new ToolPolicyProvider(['search_products' => ['confirm' => true]]))->get('search_products')->confirm);
+        self::assertFalse((new ToolPolicyProvider([], 'high_risk', false))->get('update_product')->confirm);
+        self::assertTrue((new ToolPolicyProvider(['create_order' => ['confirm' => true]]))->get('create_order')->confirm);
+    }
+
     public function testTheApplicationsCatalogueToolsAreHighRisk(): void
     {
         $policies = new ToolPolicyProvider();

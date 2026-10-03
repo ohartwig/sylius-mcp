@@ -8,6 +8,7 @@ declare(strict_types=1);
 namespace Koh\SyliusMcp;
 
 use Koh\SyliusMcp\DependencyInjection\McpReferenceContainerPass;
+use Koh\SyliusMcp\Mcp\ServerInstructions;
 use Koh\SyliusMcp\Policy\ToolClass;
 use Koh\SyliusMcp\Security\ToolAccessDecider;
 use Symfony\Component\Config\Definition\Configurator\DefinitionConfigurator;
@@ -38,10 +39,57 @@ final class KohSyliusMcpBundle extends AbstractBundle
                     ->defaultValue('/_mcp')
                     ->info('Where the MCP server listens. Must match the route the plugin registers.')
                 ->end()
+                ->arrayNode('allowed_origins')
+                    ->info('Browser origins (scheme://host[:port]) allowed to call the MCP endpoint besides the shop itself. Requests without Origin (server-side clients) are not affected.')
+                    ->scalarPrototype()->cannotBeEmpty()->end()
+                    ->defaultValue([])
+                ->end()
                 ->enumNode('default_tool_class')
                     ->values(array_map(static fn (ToolClass $class): string => $class->value, ToolClass::cases()))
                     ->defaultValue(ToolClass::HighRisk->value)
                     ->info('Risk class of a tool that is neither built in nor listed under tools.')
+                ->end()
+                ->arrayNode('writes')
+                    ->addDefaultsIfNotSet()
+                    ->children()
+                        ->booleanNode('live')
+                            ->defaultFalse()
+                            ->info('false: write tools with a draft rule keep their changes off the storefront (products disabled, articles unpublished, live products refused). A person publishes in the admin.')
+                        ->end()
+                        ->booleanNode('confirm_high_risk')
+                            ->defaultTrue()
+                            ->info('High-risk tools need a preview and then the confirm token from it. A tool can override this with tools.<name>.confirm.')
+                        ->end()
+                        ->integerNode('confirmation_ttl')
+                            ->min(30)
+                            ->max(3600)
+                            ->defaultValue(300)
+                            ->info('Seconds a confirm token stays valid.')
+                        ->end()
+                        ->arrayNode('drafts')
+                            ->info('Draft rules per tool, merged over the built-in ones (create_product, import_product, update_product, create_article, update_article).')
+                            ->useAttributeAsKey('tool')
+                            ->arrayPrototype()
+                                ->children()
+                                    ->arrayNode('force')->info('Arguments set to these values.')->useAttributeAsKey('name')->variablePrototype()->end()->end()
+                                    ->arrayNode('refuse')->info('Calls with these argument values are refused.')->useAttributeAsKey('name')->variablePrototype()->end()->end()
+                                    ->scalarNode('disable_created_product')->info('Argument naming the product code to disable after status "created".')->end()
+                                    ->scalarNode('refuse_live_product')->info('Argument naming a product code; the call is refused while that product is enabled.')->end()
+                                ->end()
+                            ->end()
+                            ->defaultValue([])
+                        ->end()
+                    ->end()
+                ->end()
+                ->arrayNode('audit')
+                    ->addDefaultsIfNotSet()
+                    ->children()
+                        ->integerNode('argument_max_length')
+                            ->min(16)
+                            ->defaultValue(200)
+                            ->info('Strings in logged tool arguments are cut to this many characters.')
+                        ->end()
+                    ->end()
                 ->end()
                 ->arrayNode('class_roles')
                     ->info('Roles of which the administrator needs one, per tool class. The scope check (mcp:read / mcp:write) applies on top.')
@@ -65,6 +113,7 @@ final class KohSyliusMcpBundle extends AbstractBundle
                             ->booleanNode('idempotent')->info('idempotentHint for write tools.')->end()
                             ->booleanNode('destructive')->info('destructiveHint for write tools.')->end()
                             ->booleanNode('untrusted')->info('The result carries text from editors, importers or customers.')->end()
+                            ->booleanNode('confirm')->info('A call needs a preview and then the confirm token from it. Default: true for high_risk tools.')->end()
                             ->arrayNode('roles')
                                 ->info('Roles of which the administrator needs one to call this tool. Replaces the class roles.')
                                 ->scalarPrototype()->cannotBeEmpty()->end()
@@ -74,6 +123,17 @@ final class KohSyliusMcpBundle extends AbstractBundle
                     ->defaultValue([])
                 ->end()
             ->end();
+    }
+
+    /**
+     * Server instructions, unless the application sets mcp.instructions
+     * itself: prepended configuration is overridden by the application's.
+     */
+    public function prependExtension(ContainerConfigurator $container, ContainerBuilder $builder): void
+    {
+        if ($builder->hasExtension('mcp')) {
+            $builder->prependExtensionConfig('mcp', ['instructions' => ServerInstructions::TEXT]);
+        }
     }
 
     public function build(ContainerBuilder $container): void
@@ -92,9 +152,15 @@ final class KohSyliusMcpBundle extends AbstractBundle
     {
         $builder->setParameter('koh_sylius_mcp.version', (string) ($config['version'] ?? '1.0.0'));
         $builder->setParameter('koh_sylius_mcp.transport_path', (string) ($config['transport_path'] ?? '/_mcp'));
+        $builder->setParameter('koh_sylius_mcp.allowed_origins', array_values($config['allowed_origins'] ?? []));
         $builder->setParameter('koh_sylius_mcp.default_tool_class', (string) ($config['default_tool_class'] ?? ToolClass::HighRisk->value));
         $builder->setParameter('koh_sylius_mcp.tools', $config['tools'] ?? []);
         $builder->setParameter('koh_sylius_mcp.class_roles', $config['class_roles'] ?? []);
+        $builder->setParameter('koh_sylius_mcp.writes.live', (bool) ($config['writes']['live'] ?? false));
+        $builder->setParameter('koh_sylius_mcp.writes.confirm_high_risk', (bool) ($config['writes']['confirm_high_risk'] ?? true));
+        $builder->setParameter('koh_sylius_mcp.writes.confirmation_ttl', (int) ($config['writes']['confirmation_ttl'] ?? 300));
+        $builder->setParameter('koh_sylius_mcp.writes.drafts', $config['writes']['drafts'] ?? []);
+        $builder->setParameter('koh_sylius_mcp.audit.argument_max_length', (int) ($config['audit']['argument_max_length'] ?? 200));
 
         $container->import(\dirname(__DIR__).'/config/services.php');
     }

@@ -33,6 +33,36 @@ Enable in `commerce`:
 3. Import the plugin config + routes (`config/packages/sylius_mcp_server.yaml`, `config/routes/*`).
 4. Verify: `POST /_mcp` `tools/list` lists `content_product_search`.
 
+## Resources, prompts, instructions, protocol version
+
+**Resources** (`src/Resource/CatalogueResources.php`), JSON, at most 500 rows
+each:
+
+| URI | Content |
+|---|---|
+| `sylius://channels` | code, name, hostname, enabled, locales, currencies, menu taxon |
+| `sylius://taxons` | code, name, slug, parent code, enabled — the codes the product tools take |
+| `sylius://product-attributes` | code, name, type, translatable |
+| `sylius://product-options` | code, name, value codes |
+
+Reading a resource needs a token with read scope and is audited as
+`resource:<uri>`.
+
+**Prompts** (`src/Prompt/CataloguePrompts.php`): `catalogue_import(source)` and
+`product_copy_review(code)` walk an agent through the order the server
+enforces — structure first, preview, the user's yes, confirm.
+
+**Instructions**: `initialize` sends `Koh\SyliusMcp\Mcp\ServerInstructions`
+(tool classes, preview/confirm, drafts, the untrusted fence). Set
+`mcp.instructions` in the application to replace them.
+
+**Protocol version**: `initialize` negotiates as the specification asks — a
+supported requested version (2025-11-25, 2025-06-18, 2025-03-26, 2024-11-05)
+is answered with itself, anything else with 2025-11-25. The SDK's own handler
+always answered 2025-06-18. None of the optional 2025-11-25 features (tasks,
+URL-mode elicitation, sampling with tools) is announced; mcp/sdk 0.3 does not
+implement them.
+
 ## Tool policy
 
 Every tool has a risk class — the three classes of the handbook's agentic-systems
@@ -120,6 +150,93 @@ The plugin's tools ask the shop API (`/api/v2/shop`) anonymously, as the
 plugin does; that API shows the same public catalogue and guest carts. Who may
 call them is decided here, before the call.
 
+### Writes: drafts, preview, confirmation
+
+The catalogue and magazine write tools (`create_product`, `import_product`,
+`update_product`, `create_article`, `update_article`) belong to the commerce
+application, not to this package. They are not duplicated here; the policy
+applies to them by name, the same way it applies to the plugin's tools.
+
+**Drafts before live** (`writes.live: false`, the default). Sylius has no
+workspace, but the enabled flag is a draft state: a disabled product is in
+the admin and not in the shop.
+
+| Tool | In draft mode |
+|---|---|
+| `create_product`, `import_product` | the product a call creates is disabled right after (the tool itself enables it) |
+| `update_product` | allowed on live products too — the change is visible at once, so it always goes through preview (which says LIVE) and confirmation |
+| `create_article` | `publish` forced to `false` |
+| `update_article` | `enabled: true` refused — an agent edits, a person publishes |
+
+Publishing is a person's step in the admin. Rules for other tools:
+
+```yaml
+koh_sylius_mcp:
+    writes:
+        live: false
+        drafts:
+            some_app_tool:
+                force: { visible: false }
+                refuse: { publish: true }
+                disable_created_product: code     # argument holding the product code
+                refuse_live_product: code
+```
+
+**Dry run.** Every `write` and `high_risk` tool takes `dryRun: true`: the call
+returns what it would do and does nothing. For the product tools the preview
+says whether the product exists and is live, whether channel and taxon exist,
+and which texts change from what to what; for `complete_checkout` it lists
+items, total, payment and shipping.
+
+**Confirmation** (`writes.confirm_high_risk: true`, the default). A
+`high_risk` tool called without `confirm` returns the preview and a confirm
+token. Only a second call with exactly the same arguments plus
+`confirm: <token>` runs the tool. The token is bound to tool, arguments,
+administrator and access token, expires after `writes.confirmation_ttl`
+seconds (300) and works once (when `cache.app` is available). This is the
+stand-in for MCP elicitation, which mcp/sdk 0.3 does not implement.
+`tools.<name>.confirm` overrides it per tool.
+
+**`complete_checkout` is switched off.** It places a binding order, and the
+handbook does not permit financial transactions by agents. A shop that wants
+it anyway switches it on explicitly — it is then high risk, so every order
+needs a preview and a confirmation:
+
+```yaml
+koh_sylius_mcp:
+    tools:
+        complete_checkout: { enabled: true }
+```
+
+### Audit trail
+
+Every `tools/call` — allowed, refused, failed, or for a tool that does not
+exist — leaves one record on the monolog channel **`koh_mcp_audit`**:
+
+| Field | |
+|---|---|
+| `tool`, `class` | what was called |
+| `outcome` | `ok`, `tool_error`, `error`, `denied` (with `reason`), `unknown_tool` |
+| `user`, `token_id`, `client_id`, `scopes`, `ip` | who, through which token and OAuth client, from where |
+| `arguments` | redacted (keys naming tokens, passwords, e-mail, phone, address … become `[redacted]`) and cut to `audit.argument_max_length` characters per string (default 200) |
+| `arguments_sha256` | hash of the complete arguments, to match two records without storing either |
+| `duration_ms` | |
+
+Routing and retention belong to the application. The handbook asks for a year;
+give the channel its own handler:
+
+```yaml
+# config/packages/monolog.yaml (prod)
+monolog:
+    channels: [koh_mcp_audit]
+    handlers:
+        koh_mcp_audit:
+            type: stream
+            path: '%kernel.logs_dir%/mcp-audit.log'
+            channels: [koh_mcp_audit]
+            formatter: monolog.formatter.json
+```
+
 ### Shop content is marked as untrusted
 
 Product texts, taxon and method names, customer notes and addresses are
@@ -139,6 +256,22 @@ a forged END line. Structured content is wrapped as
 output schema; the result's `_meta` carries `koh/untrusted: true` either way.
 A tool whose output is the server's own words can opt out:
 `tools: { my_tool: { untrusted: false } }`.
+
+### Origin check and CORS
+
+The transport specification requires the server to validate `Origin` against
+DNS rebinding, and the SDK answers every response with
+`Access-Control-Allow-Origin: *`. A request to `/_mcp` with an `Origin` that is
+neither the shop itself nor listed is refused with 403 before the firewall
+runs; the wildcard is replaced by the allowed origin or removed. Requests
+without `Origin` — every server-side client, Claude's connectors included —
+are not affected.
+
+```yaml
+koh_sylius_mcp:
+    allowed_origins:
+        - 'https://inspector.example.com'   # a browser-based MCP client
+```
 
 ### Name conflicts
 
