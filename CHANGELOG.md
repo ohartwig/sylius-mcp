@@ -1,3 +1,9 @@
+## [2.1.0](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/compare/v2.0.0...v2.1.0) (2026-10-03)
+
+### :sparkles: Features
+
+* **output:** mark shop content in tool output as UNTRUSTED ([162b6eb](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/commit/162b6eb76557c8172717bee40ae20abba116eb14))
+
 ## [2.0.0](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/compare/v1.2.39...v2.0.0) (2026-10-03)
 
 ### :boom: BREAKING CHANGES
