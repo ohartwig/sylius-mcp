@@ -7,6 +7,7 @@ declare(strict_types=1);
 
 namespace Koh\SyliusMcp\Mcp;
 
+use Koh\SyliusMcp\Policy\ToolPolicy;
 use Koh\SyliusMcp\Policy\ToolPolicyProvider;
 use Mcp\Capability\Discovery\DiscoveryState;
 use Mcp\Capability\Registry\PromptReference;
@@ -46,6 +47,11 @@ use Psr\Log\NullLogger;
 final class PolicyRegistry implements RegistryInterface
 {
     private const OWN_NAMESPACE = 'Koh\\SyliusMcp\\';
+
+    /** Argument names GuardedCallToolHandler consumes. */
+    public const DRY_RUN = 'dryRun';
+
+    public const CONFIRM = 'confirm';
 
     /** @var array<string, string> tool name => class of the handler that holds it */
     private array $owners = [];
@@ -140,10 +146,12 @@ final class PolicyRegistry implements RegistryInterface
 
         $this->owners[$tool->name] = $owner;
 
+        [$inputSchema, $description] = self::withWriteControls($tool, $policy);
+
         return new Tool(
             name: $tool->name,
-            inputSchema: $tool->inputSchema,
-            description: $tool->description,
+            inputSchema: $inputSchema,
+            description: $description,
             annotations: $policy->annotations($tool->annotations),
             icons: $tool->icons,
             meta: $tool->meta,
@@ -234,6 +242,51 @@ final class PolicyRegistry implements RegistryInterface
     public function getPrompt(string $name): PromptReference
     {
         return $this->inner->getPrompt($name);
+    }
+
+    /**
+     * Write tools get a `dryRun` argument, and tools that need confirmation a
+     * `confirm` argument, both handled by GuardedCallToolHandler and never
+     * passed to the tool. They have to be in the schema: the SDK validates
+     * arguments against it before any handler sees them, and an agent only
+     * uses what the schema offers.
+     *
+     * @return array{array{type: 'object', properties: array<string, mixed>, required: array<string>|null}, string|null}
+     */
+    private static function withWriteControls(Tool $tool, ToolPolicy $policy): array
+    {
+        $schema = $tool->inputSchema;
+        $description = $tool->description;
+        if (!$policy->class->isWrite()) {
+            return [$schema, $description];
+        }
+
+        // Copied by iteration: an empty property list can arrive as a
+        // stdClass (Tool::fromArray does that), whatever the type says.
+        $properties = [];
+        foreach ($schema['properties'] as $name => $property) {
+            $properties[$name] = $property;
+        }
+        if (isset($properties[self::DRY_RUN]) || isset($properties[self::CONFIRM])) {
+            // The tool has an argument of that name itself; ours would shadow it.
+            return [$schema, $description];
+        }
+
+        $properties[self::DRY_RUN] = [
+            'type' => 'boolean',
+            'default' => false,
+            'description' => 'Preview only: report what the call would change, change nothing.',
+        ];
+        if ($policy->confirm) {
+            $properties[self::CONFIRM] = [
+                'type' => 'string',
+                'description' => 'Confirmation token from the preview of this exact call. Without it the call is a preview.',
+            ];
+            $description = rtrim((string) $description).' Needs confirmation: call it first without `confirm` to get a preview and a confirm token, show the preview to the user, then call again with the same arguments plus `confirm`.';
+        }
+        $schema['properties'] = $properties;
+
+        return [$schema, $description];
     }
 
     /** @param callable|array<mixed>|string $handler */

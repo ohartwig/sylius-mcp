@@ -37,12 +37,13 @@ final class PolicyRegistryTest extends TestCase
     public function testRegisteredToolsCarryThePolicyAnnotations(): void
     {
         $registry = $this->registry();
-        $registry->registerTool($this->tool('complete_checkout'), 'Vendor\\Complete', true);
+        $registry->registerTool($this->tool('update_product'), 'Vendor\\Update', true);
 
-        $annotations = $registry->getTool('complete_checkout')->tool->annotations;
+        $annotations = $registry->getTool('update_product')->tool->annotations;
         self::assertNotNull($annotations);
         self::assertFalse($annotations->readOnlyHint);
         self::assertTrue($annotations->destructiveHint);
+        self::assertTrue($annotations->idempotentHint);
     }
 
     /**

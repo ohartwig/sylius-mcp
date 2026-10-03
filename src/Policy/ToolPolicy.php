@@ -26,6 +26,8 @@ final readonly class ToolPolicy
         public bool $untrusted = true,
         /** True when the name is neither built in nor configured. */
         public bool $unknown = false,
+        /** A call has to be previewed and then confirmed with the token from the preview. */
+        public bool $confirm = false,
     ) {
     }
 
