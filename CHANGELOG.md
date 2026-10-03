@@ -1,3 +1,14 @@
+## [2.0.0](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/compare/v1.2.39...v2.0.0) (2026-10-03)
+
+### :boom: BREAKING CHANGES
+
+* fetch_product now comes from this package instead of the plugin and returns a compact object (code, name, slug, description, shortDescription, enabled, mainTaxon, variants[].code) instead of the shop API's raw JSON-LD. The server card lists the tools of the MCP registry instead of the AgentSkillRegistry.
+
+### :sparkles: Features
+
+* **policy:** tool policy for every MCP tool, annotations and switches ([3da707e](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/commit/3da707edf13cb21eec345190a929addb40e2578e))
+* **security:** tools run with the rights of the token's user ([823b3c8](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/commit/823b3c813ba51e729c18e95671baba9e3620f70e))
+
 ## [1.2.39](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/compare/v1.2.38...v1.2.39) (2026-10-03)
 
 ### :repeat: Chores
