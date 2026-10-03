@@ -10,14 +10,19 @@ use Koh\SyliusAgentContracts\Http\AgentJsonResponder;
 use Koh\SyliusMcp\Agent\McpEndpointProvider;
 use Koh\SyliusMcp\Controller\McpServerCardController;
 use Koh\SyliusMcp\DependencyInjection\McpReferenceContainerPass;
+use Koh\SyliusMcp\EventSubscriber\McpOriginSubscriber;
 use Koh\SyliusMcp\Mcp\FilteredListToolsHandler;
 use Koh\SyliusMcp\Mcp\GuardedCallToolHandler;
+use Koh\SyliusMcp\Mcp\GuardedReadResourceHandler;
 use Koh\SyliusMcp\Mcp\KohCapabilityLoader;
 use Koh\SyliusMcp\Mcp\McpCatalogue;
+use Koh\SyliusMcp\Mcp\NegotiatingInitializeHandler;
 use Koh\SyliusMcp\Mcp\PolicyRegistry;
 use Koh\SyliusMcp\Audit\ToolCallAuditor;
 use Koh\SyliusMcp\Output\UntrustedContentMarker;
 use Koh\SyliusMcp\Policy\ToolPolicyProvider;
+use Koh\SyliusMcp\Prompt\CataloguePrompts;
+use Koh\SyliusMcp\Resource\CatalogueResources;
 use Koh\SyliusMcp\Security\CatalogueVisibility;
 use Koh\SyliusMcp\Security\McpCallerResolver;
 use Koh\SyliusMcp\Security\ToolAccessDecider;
@@ -30,6 +35,7 @@ use Koh\SyliusMcp\Write\Preview\ProductWritePreview;
 use Koh\SyliusMcp\Write\WriteGate;
 use Mcp\Capability\Registry\ReferenceHandler;
 use Mcp\Server\Handler\Request\CallToolHandler;
+use Mcp\Server\Handler\Request\ReadResourceHandler;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\DependencyInjection\Loader\Configurator\ContainerConfigurator;
 
@@ -120,6 +126,50 @@ return static function (ContainerConfigurator $container): void {
         ->tag('mcp.request_handler')
         ->tag('monolog.logger', ['channel' => 'mcp']);
 
+    $services->set(CatalogueResources::class)
+        ->autoconfigure(false)
+        ->args([
+            service('sylius.repository.channel'),
+            service('sylius.repository.taxon'),
+            service('sylius.repository.product_attribute'),
+            service('sylius.repository.product_option'),
+        ])
+        ->tag('mcp.resource');
+
+    $services->set(CataloguePrompts::class)
+        ->autoconfigure(false)
+        ->tag('mcp.prompt');
+
+    $services->set('koh_sylius_mcp.sdk_read_resource_handler', ReadResourceHandler::class)
+        ->autoconfigure(false)
+        ->args([
+            service('mcp.registry'),
+            service(McpReferenceContainerPass::REFERENCE_HANDLER),
+            service('logger')->nullOnInvalid(),
+        ]);
+
+    $services->set(GuardedReadResourceHandler::class)
+        ->autoconfigure(false)
+        ->args([
+            service('koh_sylius_mcp.sdk_read_resource_handler'),
+            service(McpCallerResolver::class),
+            service(ToolCallAuditor::class),
+        ])
+        ->tag('mcp.request_handler');
+
+    $services->set(NegotiatingInitializeHandler::class)
+        ->autoconfigure(false)
+        ->factory([NegotiatingInitializeHandler::class, 'create'])
+        ->args([
+            service('mcp.registry'),
+            param('mcp.app'),
+            param('mcp.version'),
+            param('mcp.description'),
+            param('mcp.website_url'),
+            param('mcp.instructions'),
+        ])
+        ->tag('mcp.request_handler');
+
     $services->set(FilteredListToolsHandler::class)
         ->autoconfigure(false)
         ->args([
@@ -202,6 +252,13 @@ return static function (ContainerConfigurator $container): void {
         ])
         ->public()
         ->tag('controller.service_arguments');
+
+    $services->set(McpOriginSubscriber::class)
+        ->args([
+            param('koh_sylius_mcp.transport_path'),
+            param('koh_sylius_mcp.allowed_origins'),
+        ])
+        ->tag('kernel.event_subscriber');
 
     $services->set(McpEndpointProvider::class)
         ->args([param('koh_sylius_mcp.transport_path')])

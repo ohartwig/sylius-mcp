@@ -33,6 +33,36 @@ Enable in `commerce`:
 3. Import the plugin config + routes (`config/packages/sylius_mcp_server.yaml`, `config/routes/*`).
 4. Verify: `POST /_mcp` `tools/list` lists `content_product_search`.
 
+## Resources, prompts, instructions, protocol version
+
+**Resources** (`src/Resource/CatalogueResources.php`), JSON, at most 500 rows
+each:
+
+| URI | Content |
+|---|---|
+| `sylius://channels` | code, name, hostname, enabled, locales, currencies, menu taxon |
+| `sylius://taxons` | code, name, slug, parent code, enabled — the codes the product tools take |
+| `sylius://product-attributes` | code, name, type, translatable |
+| `sylius://product-options` | code, name, value codes |
+
+Reading a resource needs a token with read scope and is audited as
+`resource:<uri>`.
+
+**Prompts** (`src/Prompt/CataloguePrompts.php`): `catalogue_import(source)` and
+`product_copy_review(code)` walk an agent through the order the server
+enforces — structure first, preview, the user's yes, confirm.
+
+**Instructions**: `initialize` sends `Koh\SyliusMcp\Mcp\ServerInstructions`
+(tool classes, preview/confirm, drafts, the untrusted fence). Set
+`mcp.instructions` in the application to replace them.
+
+**Protocol version**: `initialize` negotiates as the specification asks — a
+supported requested version (2025-11-25, 2025-06-18, 2025-03-26, 2024-11-05)
+is answered with itself, anything else with 2025-11-25. The SDK's own handler
+always answered 2025-06-18. None of the optional 2025-11-25 features (tasks,
+URL-mode elicitation, sampling with tools) is announced; mcp/sdk 0.3 does not
+implement them.
+
 ## Tool policy
 
 Every tool has a risk class — the three classes of the handbook's agentic-systems
@@ -226,6 +256,22 @@ a forged END line. Structured content is wrapped as
 output schema; the result's `_meta` carries `koh/untrusted: true` either way.
 A tool whose output is the server's own words can opt out:
 `tools: { my_tool: { untrusted: false } }`.
+
+### Origin check and CORS
+
+The transport specification requires the server to validate `Origin` against
+DNS rebinding, and the SDK answers every response with
+`Access-Control-Allow-Origin: *`. A request to `/_mcp` with an `Origin` that is
+neither the shop itself nor listed is refused with 403 before the firewall
+runs; the wildcard is replaced by the allowed origin or removed. Requests
+without `Origin` — every server-side client, Claude's connectors included —
+are not affected.
+
+```yaml
+koh_sylius_mcp:
+    allowed_origins:
+        - 'https://inspector.example.com'   # a browser-based MCP client
+```
 
 ### Name conflicts
 

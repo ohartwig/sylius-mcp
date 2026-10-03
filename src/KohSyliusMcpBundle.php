@@ -8,6 +8,7 @@ declare(strict_types=1);
 namespace Koh\SyliusMcp;
 
 use Koh\SyliusMcp\DependencyInjection\McpReferenceContainerPass;
+use Koh\SyliusMcp\Mcp\ServerInstructions;
 use Koh\SyliusMcp\Policy\ToolClass;
 use Koh\SyliusMcp\Security\ToolAccessDecider;
 use Symfony\Component\Config\Definition\Configurator\DefinitionConfigurator;
@@ -37,6 +38,11 @@ final class KohSyliusMcpBundle extends AbstractBundle
                 ->scalarNode('transport_path')
                     ->defaultValue('/_mcp')
                     ->info('Where the MCP server listens. Must match the route the plugin registers.')
+                ->end()
+                ->arrayNode('allowed_origins')
+                    ->info('Browser origins (scheme://host[:port]) allowed to call the MCP endpoint besides the shop itself. Requests without Origin (server-side clients) are not affected.')
+                    ->scalarPrototype()->cannotBeEmpty()->end()
+                    ->defaultValue([])
                 ->end()
                 ->enumNode('default_tool_class')
                     ->values(array_map(static fn (ToolClass $class): string => $class->value, ToolClass::cases()))
@@ -119,6 +125,17 @@ final class KohSyliusMcpBundle extends AbstractBundle
             ->end();
     }
 
+    /**
+     * Server instructions, unless the application sets mcp.instructions
+     * itself: prepended configuration is overridden by the application's.
+     */
+    public function prependExtension(ContainerConfigurator $container, ContainerBuilder $builder): void
+    {
+        if ($builder->hasExtension('mcp')) {
+            $builder->prependExtensionConfig('mcp', ['instructions' => ServerInstructions::TEXT]);
+        }
+    }
+
     public function build(ContainerBuilder $container): void
     {
         parent::build($container);
@@ -135,6 +152,7 @@ final class KohSyliusMcpBundle extends AbstractBundle
     {
         $builder->setParameter('koh_sylius_mcp.version', (string) ($config['version'] ?? '1.0.0'));
         $builder->setParameter('koh_sylius_mcp.transport_path', (string) ($config['transport_path'] ?? '/_mcp'));
+        $builder->setParameter('koh_sylius_mcp.allowed_origins', array_values($config['allowed_origins'] ?? []));
         $builder->setParameter('koh_sylius_mcp.default_tool_class', (string) ($config['default_tool_class'] ?? ToolClass::HighRisk->value));
         $builder->setParameter('koh_sylius_mcp.tools', $config['tools'] ?? []);
         $builder->setParameter('koh_sylius_mcp.class_roles', $config['class_roles'] ?? []);
