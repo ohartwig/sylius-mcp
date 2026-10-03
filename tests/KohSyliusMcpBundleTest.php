@@ -72,7 +72,7 @@ final class KohSyliusMcpBundleTest extends TestCase
 
         self::assertSame('write', $container->getParameter('koh_sylius_mcp.default_tool_class'));
         self::assertSame(
-            ['complete_checkout' => ['enabled' => false], 'create_order' => ['class' => 'high_risk']],
+            ['complete_checkout' => ['enabled' => false, 'roles' => []], 'create_order' => ['class' => 'high_risk', 'roles' => []]],
             $container->getParameter('koh_sylius_mcp.tools'),
         );
     }
