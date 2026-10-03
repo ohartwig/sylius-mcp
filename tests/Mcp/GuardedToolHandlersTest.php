@@ -7,6 +7,7 @@ declare(strict_types=1);
 
 namespace Koh\SyliusMcp\Tests\Mcp;
 
+use Koh\SyliusMcp\Audit\ToolCallAuditor;
 use Koh\SyliusMcp\Mcp\FilteredListToolsHandler;
 use Koh\SyliusMcp\Mcp\GuardedCallToolHandler;
 use Koh\SyliusMcp\Mcp\PolicyRegistry;
@@ -15,6 +16,7 @@ use Koh\SyliusMcp\Security\McpCallerResolver;
 use Koh\SyliusMcp\Security\ToolAccessDecider;
 use Koh\SyliusMcp\Tests\Support\McpHarness;
 use Koh\SyliusMcp\Tests\Support\McpSecurityFixtures;
+use Koh\SyliusMcp\Tests\Support\MemoryLogger;
 use Koh\SyliusMcp\Tests\Support\RecordingTool;
 use Mcp\Capability\Registry;
 use Mcp\Capability\Registry\ReferenceHandler;
@@ -112,6 +114,21 @@ final class GuardedToolHandlersTest extends TestCase
         self::assertStringStartsWith('Access denied', self::text($result));
     }
 
+    /** Every call leaves a record — the refused ones above all. */
+    public function testAllowedAndRefusedCallsAreAudited(): void
+    {
+        $logger = new MemoryLogger();
+        $auditor = new ToolCallAuditor($logger);
+
+        self::callTool($this->call(self::callers(), auditor: $auditor), 'update_product', ['code' => 'MUG']);
+        self::callTool($this->call(self::callers(scopes: ['mcp:read']), auditor: $auditor), 'update_product', ['code' => 'MUG']);
+
+        self::assertSame(['ok', 'denied'], array_map(static fn (array $r): mixed => $r['context']['outcome'], $logger->records));
+        self::assertSame('admin@example.com', $logger->records[1]['context']['user']);
+        self::assertSame(42, $logger->records[1]['context']['token_id']);
+        self::assertStringContainsString('mcp:write', (string) $logger->records[1]['context']['reason']);
+    }
+
     public function testAnUnknownToolGetsTheSdksAnswer(): void
     {
         $handler = $this->call(self::callers());
@@ -131,7 +148,7 @@ final class GuardedToolHandlersTest extends TestCase
         self::assertSame([], self::listToolNames($this->list(self::callers(user: null))));
     }
 
-    private function call(McpCallerResolver $callers, ?ToolAccessDecider $decider = null): GuardedCallToolHandler
+    private function call(McpCallerResolver $callers, ?ToolAccessDecider $decider = null, ?ToolCallAuditor $auditor = null): GuardedCallToolHandler
     {
         return new GuardedCallToolHandler(
             $this->registry,
@@ -139,6 +156,7 @@ final class GuardedToolHandlersTest extends TestCase
             new ToolPolicyProvider(),
             $decider ?? self::decider(),
             $callers,
+            auditor: $auditor ?? new ToolCallAuditor(),
         );
     }
 

@@ -120,6 +120,35 @@ The plugin's tools ask the shop API (`/api/v2/shop`) anonymously, as the
 plugin does; that API shows the same public catalogue and guest carts. Who may
 call them is decided here, before the call.
 
+### Audit trail
+
+Every `tools/call` — allowed, refused, failed, or for a tool that does not
+exist — leaves one record on the monolog channel **`koh_mcp_audit`**:
+
+| Field | |
+|---|---|
+| `tool`, `class` | what was called |
+| `outcome` | `ok`, `tool_error`, `error`, `denied` (with `reason`), `unknown_tool` |
+| `user`, `token_id`, `client_id`, `scopes`, `ip` | who, through which token and OAuth client, from where |
+| `arguments` | redacted (keys naming tokens, passwords, e-mail, phone, address … become `[redacted]`) and cut to `audit.argument_max_length` characters per string (default 200) |
+| `arguments_sha256` | hash of the complete arguments, to match two records without storing either |
+| `duration_ms` | |
+
+Routing and retention belong to the application. The handbook asks for a year;
+give the channel its own handler:
+
+```yaml
+# config/packages/monolog.yaml (prod)
+monolog:
+    channels: [koh_mcp_audit]
+    handlers:
+        koh_mcp_audit:
+            type: stream
+            path: '%kernel.logs_dir%/mcp-audit.log'
+            channels: [koh_mcp_audit]
+            formatter: monolog.formatter.json
+```
+
 ### Shop content is marked as untrusted
 
 Product texts, taxon and method names, customer notes and addresses are

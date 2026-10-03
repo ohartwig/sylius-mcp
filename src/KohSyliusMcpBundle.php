@@ -43,6 +43,16 @@ final class KohSyliusMcpBundle extends AbstractBundle
                     ->defaultValue(ToolClass::HighRisk->value)
                     ->info('Risk class of a tool that is neither built in nor listed under tools.')
                 ->end()
+                ->arrayNode('audit')
+                    ->addDefaultsIfNotSet()
+                    ->children()
+                        ->integerNode('argument_max_length')
+                            ->min(16)
+                            ->defaultValue(200)
+                            ->info('Strings in logged tool arguments are cut to this many characters.')
+                        ->end()
+                    ->end()
+                ->end()
                 ->arrayNode('class_roles')
                     ->info('Roles of which the administrator needs one, per tool class. The scope check (mcp:read / mcp:write) applies on top.')
                     ->addDefaultsIfNotSet()
@@ -95,6 +105,7 @@ final class KohSyliusMcpBundle extends AbstractBundle
         $builder->setParameter('koh_sylius_mcp.default_tool_class', (string) ($config['default_tool_class'] ?? ToolClass::HighRisk->value));
         $builder->setParameter('koh_sylius_mcp.tools', $config['tools'] ?? []);
         $builder->setParameter('koh_sylius_mcp.class_roles', $config['class_roles'] ?? []);
+        $builder->setParameter('koh_sylius_mcp.audit.argument_max_length', (int) ($config['audit']['argument_max_length'] ?? 200));
 
         $container->import(\dirname(__DIR__).'/config/services.php');
     }

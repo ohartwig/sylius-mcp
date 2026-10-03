@@ -7,6 +7,7 @@ declare(strict_types=1);
 
 namespace Koh\SyliusMcp\Mcp;
 
+use Koh\SyliusMcp\Audit\ToolCallAuditor;
 use Koh\SyliusMcp\Output\UntrustedContentMarker;
 use Koh\SyliusMcp\Policy\ToolPolicyProvider;
 use Koh\SyliusMcp\Security\McpCallerResolver;
@@ -37,7 +38,8 @@ use Psr\Log\NullLogger;
  * should read why, not see a transport failure.
  *
  * On the way out, the result of a tool whose policy says `untrusted` is
- * marked as data ({@see UntrustedContentMarker}).
+ * marked as data ({@see UntrustedContentMarker}), and every call — allowed,
+ * refused or failed — leaves one audit record ({@see ToolCallAuditor}).
  *
  * @implements RequestHandlerInterface<CallToolResult>
  */
@@ -51,6 +53,7 @@ final class GuardedCallToolHandler implements RequestHandlerInterface
         private readonly ToolAccessDecider $access,
         private readonly McpCallerResolver $callers,
         private readonly UntrustedContentMarker $untrusted = new UntrustedContentMarker(),
+        private readonly ToolCallAuditor $auditor = new ToolCallAuditor(),
         private readonly LoggerInterface $logger = new NullLogger(),
     ) {
     }
@@ -64,16 +67,19 @@ final class GuardedCallToolHandler implements RequestHandlerInterface
     public function handle(Request $request, SessionInterface $session): Response|Error
     {
         \assert($request instanceof CallToolRequest);
+        $startedAt = microtime(true);
+        $caller = $this->callers->resolve();
 
         try {
             $reference = $this->registry->getTool($request->name);
         } catch (ToolNotFoundException) {
             // The SDK's answer for an unknown tool is the right one.
+            $this->auditor->record($request->name, null, $caller, $request->arguments, 'unknown_tool', $startedAt);
+
             return $this->inner->handle($request, $session);
         }
 
         $policy = $this->policies->get($request->name);
-        $caller = $this->callers->resolve();
         $decision = $this->access->decide($policy, $caller);
 
         if (!$decision->allowed) {
@@ -82,15 +88,30 @@ final class GuardedCallToolHandler implements RequestHandlerInterface
                 'user' => $caller->user ?? 'anonymous',
                 'reason' => $decision->reason,
             ]);
+            $this->auditor->record($request->name, $policy, $caller, $request->arguments, 'denied', $startedAt, ['reason' => $decision->reason]);
 
             return new Response($request->getId(), CallToolResult::error([
                 new TextContent('Access denied: '.$decision->reason),
             ]));
         }
 
-        $response = $this->inner->handle($request, $session);
+        try {
+            $response = $this->inner->handle($request, $session);
+        } catch (\Throwable $e) {
+            $this->auditor->record($request->name, $policy, $caller, $request->arguments, 'error', $startedAt, ['error' => $e::class]);
 
-        if ($policy->untrusted && $response instanceof Response && !$response->result->isError) {
+            throw $e;
+        }
+
+        if ($response instanceof Error) {
+            $this->auditor->record($request->name, $policy, $caller, $request->arguments, 'error', $startedAt, ['error' => $response->message]);
+
+            return $response;
+        }
+
+        $this->auditor->record($request->name, $policy, $caller, $request->arguments, $response->result->isError ? 'tool_error' : 'ok', $startedAt);
+
+        if ($policy->untrusted && !$response->result->isError) {
             return new Response($response->getId(), $this->untrusted->mark($response->result, null !== $reference->tool->outputSchema));
         }
 

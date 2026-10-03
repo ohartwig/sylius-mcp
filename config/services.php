@@ -15,6 +15,7 @@ use Koh\SyliusMcp\Mcp\GuardedCallToolHandler;
 use Koh\SyliusMcp\Mcp\KohCapabilityLoader;
 use Koh\SyliusMcp\Mcp\McpCatalogue;
 use Koh\SyliusMcp\Mcp\PolicyRegistry;
+use Koh\SyliusMcp\Audit\ToolCallAuditor;
 use Koh\SyliusMcp\Output\UntrustedContentMarker;
 use Koh\SyliusMcp\Policy\ToolPolicyProvider;
 use Koh\SyliusMcp\Security\CatalogueVisibility;
@@ -49,6 +50,15 @@ return static function (ContainerConfigurator $container): void {
     }
 
     $services->set(UntrustedContentMarker::class);
+
+    // Own channel, so the application can route the audit trail to its own
+    // handler and retention (the handbook asks for a year).
+    $services->set(ToolCallAuditor::class)
+        ->args([
+            service('logger')->nullOnInvalid(),
+            param('koh_sylius_mcp.audit.argument_max_length'),
+        ])
+        ->tag('monolog.logger', ['channel' => 'koh_mcp_audit']);
 
     $services->set(McpCallerResolver::class)
         ->args([
@@ -97,6 +107,7 @@ return static function (ContainerConfigurator $container): void {
             service(ToolAccessDecider::class),
             service(McpCallerResolver::class),
             service(UntrustedContentMarker::class),
+            service(ToolCallAuditor::class),
             service('logger')->nullOnInvalid(),
         ])
         ->tag('mcp.request_handler')
