@@ -1,0 +1,87 @@
+<?php
+
+// SPDX-FileCopyrightText: 2026 Kai Ole Hartwig
+// SPDX-License-Identifier: MIT
+
+declare(strict_types=1);
+
+namespace Koh\SyliusMcp\Mcp;
+
+use Koh\SyliusMcp\Policy\ToolPolicyProvider;
+use Koh\SyliusMcp\Security\McpCallerResolver;
+use Koh\SyliusMcp\Security\ToolAccessDecider;
+use Mcp\Capability\RegistryInterface;
+use Mcp\Exception\ToolNotFoundException;
+use Mcp\Schema\Content\TextContent;
+use Mcp\Schema\JsonRpc\Error;
+use Mcp\Schema\JsonRpc\Request;
+use Mcp\Schema\JsonRpc\Response;
+use Mcp\Schema\Request\CallToolRequest;
+use Mcp\Schema\Result\CallToolResult;
+use Mcp\Server\Handler\Request\RequestHandlerInterface;
+use Mcp\Server\Session\SessionInterface;
+use Psr\Log\LoggerInterface;
+use Psr\Log\NullLogger;
+
+/**
+ * Handles tools/call in front of the SDK's own handler.
+ *
+ * Custom request handlers run before the built-in ones (the server builder
+ * merges them first, and the first handler that supports a request takes it),
+ * so every tool call — whoever registered the tool — passes through here
+ * before the SDK resolves and runs it. That is the point where the caller's
+ * rights are checked.
+ *
+ * A refusal is a tool result with isError, not a JSON-RPC error: the agent
+ * should read why, not see a transport failure.
+ *
+ * @implements RequestHandlerInterface<CallToolResult>
+ */
+final class GuardedCallToolHandler implements RequestHandlerInterface
+{
+    /** @param RequestHandlerInterface<CallToolResult> $inner the SDK's CallToolHandler */
+    public function __construct(
+        private readonly RegistryInterface $registry,
+        private readonly RequestHandlerInterface $inner,
+        private readonly ToolPolicyProvider $policies,
+        private readonly ToolAccessDecider $access,
+        private readonly McpCallerResolver $callers,
+        private readonly LoggerInterface $logger = new NullLogger(),
+    ) {
+    }
+
+    public function supports(Request $request): bool
+    {
+        return $request instanceof CallToolRequest;
+    }
+
+    /** @return Response<CallToolResult>|Error */
+    public function handle(Request $request, SessionInterface $session): Response|Error
+    {
+        \assert($request instanceof CallToolRequest);
+
+        try {
+            $this->registry->getTool($request->name);
+        } catch (ToolNotFoundException) {
+            // The SDK's answer for an unknown tool is the right one.
+            return $this->inner->handle($request, $session);
+        }
+
+        $caller = $this->callers->resolve();
+        $decision = $this->access->decide($this->policies->get($request->name), $caller);
+
+        if (!$decision->allowed) {
+            $this->logger->warning('MCP tool call refused: {tool} for {user}: {reason}', [
+                'tool' => $request->name,
+                'user' => $caller->user ?? 'anonymous',
+                'reason' => $decision->reason,
+            ]);
+
+            return new Response($request->getId(), CallToolResult::error([
+                new TextContent('Access denied: '.$decision->reason),
+            ]));
+        }
+
+        return $this->inner->handle($request, $session);
+    }
+}

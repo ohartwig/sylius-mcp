@@ -65,6 +65,61 @@ koh_sylius_mcp:
 cannot be called by name either. This works for the plugin's tools too, which
 the plugin itself registers unconditionally.
 
+### Who may call what
+
+A bearer token identifies an administrator (koh/sylius-mcp-oauth). Every
+`tools/call` passes `Koh\SyliusMcp\Mcp\GuardedCallToolHandler` before the
+SDK runs the tool, and `tools/list` shows only what that caller may call:
+
+1. **Scope** of the token: `read` tools need `mcp:read`, `write` and
+   `high_risk` tools need `mcp:write` (which implies read). The legacy scope
+   `mcp` covers both — tokens issued before the split keep working, and so do
+   authenticators that report no scopes at all.
+2. **Role** of the administrator, per class or per tool; any one of the listed
+   roles suffices, and the role hierarchy applies:
+
+```yaml
+koh_sylius_mcp:
+    class_roles:
+        read: [ROLE_ADMINISTRATION_ACCESS]       # default for all three
+        write: [ROLE_ADMINISTRATION_ACCESS]
+        high_risk: [ROLE_MCP_CATALOGUE]          # only admins holding this role change the catalogue
+    tools:
+        fetch_order: { roles: [ROLE_MCP_ORDERS] } # replaces the class roles for this tool
+```
+
+An empty role list never means "no role needed"; it falls back to
+`ROLE_ADMINISTRATION_ACCESS`. A refused call returns a tool error with the
+reason; the tool does not run.
+
+The scope facts come from security-token attributes (`koh_mcp.scopes`,
+`koh_mcp.token_id`, `koh_mcp.client_id`, see
+`Koh\SyliusMcp\Security\McpTokenAttributes`) that koh/sylius-mcp-oauth sets.
+Over stdio (`bin/console mcp:server`) there is no token; the console operator
+is allowed.
+
+**The firewall is still the first line.** The application's `security.yaml`
+needs the access rule, or a request without a bearer token reaches `/_mcp`
+anonymously and only this second line stands in the way:
+
+```yaml
+security:
+    access_control:
+        - { path: ^/_mcp, role: ROLE_ADMINISTRATION_ACCESS }
+```
+
+### What the read tools show
+
+`content_product_search` and `fetch_product` show what the channel's
+storefront shows: enabled products assigned to the channel the request came in
+on. If no channel resolves, they show nothing. A disabled product (a draft) is
+returned by `fetch_product` only with `includeUnpublished: true` and only to a
+caller who passes the `high_risk` rules.
+
+The plugin's tools ask the shop API (`/api/v2/shop`) anonymously, as the
+plugin does; that API shows the same public catalogue and guest carts. Who may
+call them is decided here, before the call.
+
 ### Name conflicts
 
 The SDK registry keys tools by name, and the plugin and this package both ship a

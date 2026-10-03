@@ -7,6 +7,7 @@ declare(strict_types=1);
 
 namespace Koh\SyliusMcp\Tool;
 
+use Koh\SyliusMcp\Security\CatalogueVisibility;
 use Mcp\Capability\Attribute\McpTool;
 use Sylius\Component\Product\Model\ProductInterface;
 use Sylius\Component\Product\Repository\ProductRepositoryInterface;
@@ -24,7 +25,7 @@ use Sylius\Component\Product\Repository\ProductRepositoryInterface;
  */
 #[McpTool(
     name: 'content_product_search',
-    description: 'Search shop products by phrase (content-commerce aware). Returns product code, name and slug.',
+    description: 'Search the enabled products of this channel by phrase (content-commerce aware). Returns product code, name and slug.',
 )]
 final class ContentAwareProductSearchTool
 {
@@ -34,6 +35,7 @@ final class ContentAwareProductSearchTool
     /** @param ProductRepositoryInterface<ProductInterface> $productRepository */
     public function __construct(
         private readonly ProductRepositoryInterface $productRepository,
+        private readonly CatalogueVisibility $visibility,
     ) {
     }
 
@@ -53,6 +55,12 @@ final class ContentAwareProductSearchTool
         $products = $this->productRepository->findByName($phrase, $localeCode);
 
         // TODO: enrich/re-rank with matching TYPO3 content via koh/typo3-sylius-bridge.
+
+        // findByName() knows neither channel nor enabled flag: it matched
+        // disabled products and other channels' products alike. Filtered
+        // before the limit, so a page of invisible hits cannot crowd out the
+        // visible ones.
+        $products = array_filter($products, fn (ProductInterface $product): bool => $this->visibility->isVisible($product));
 
         // Clamped at both ends. The result goes straight into an agent's context
         // window, where an unbounded list is not just expensive but crowds out

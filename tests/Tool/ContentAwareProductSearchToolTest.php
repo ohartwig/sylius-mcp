@@ -7,6 +7,7 @@ declare(strict_types=1);
 
 namespace Koh\SyliusMcp\Tests\Tool;
 
+use Koh\SyliusMcp\Tests\Support\CatalogueFixtures;
 use Koh\SyliusMcp\Tool\ContentAwareProductSearchTool;
 use PHPUnit\Framework\TestCase;
 use Sylius\Component\Core\Model\ProductInterface;
@@ -14,20 +15,37 @@ use Sylius\Component\Product\Repository\ProductRepositoryInterface;
 
 final class ContentAwareProductSearchToolTest extends TestCase
 {
+    use CatalogueFixtures;
+
     public function testItReturnsFlattenedProductRows(): void
     {
-        $product = $this->createMock(ProductInterface::class);
-        $product->method('getCode')->willReturn('MUG');
-        $product->method('getName')->willReturn('Mug');
-        $product->method('getSlug')->willReturn('mug');
+        $rows = $this->tool([$this->product('MUG')])('mug', 'en_US', 10);
 
-        $repository = $this->createMock(ProductRepositoryInterface::class);
-        $repository->method('findByName')->willReturn([$product]);
+        self::assertSame([['code' => 'MUG', 'name' => 'Product MUG', 'slug' => 'mug']], $rows);
+    }
 
-        $tool = new ContentAwareProductSearchTool($repository);
-        $rows = $tool('mug', 'en_US', 10);
+    /**
+     * The repository's name search knows neither channel nor enabled flag.
+     * What it found in another channel, or disabled, stays out.
+     */
+    public function testOnlyEnabledProductsOfTheChannelAreFound(): void
+    {
+        $rows = $this->tool([
+            $this->product('LIVE'),
+            $this->product('DRAFT', enabled: false),
+            $this->product('ELSEWHERE', inChannel: false),
+        ])('p');
 
-        self::assertSame([['code' => 'MUG', 'name' => 'Mug', 'slug' => 'mug']], $rows);
+        self::assertSame(['LIVE'], array_column($rows, 'code'));
+    }
+
+    /** No channel, no catalogue — not every channel's catalogue. */
+    public function testNothingIsFoundWhenNoChannelResolves(): void
+    {
+        $repository = $this->createStub(ProductRepositoryInterface::class);
+        $repository->method('findByName')->willReturn([$this->product('LIVE')]);
+
+        self::assertSame([], (new ContentAwareProductSearchTool($repository, $this->visibility(channelResolves: false)))('p'));
     }
 
     /**
@@ -37,12 +55,24 @@ final class ContentAwareProductSearchToolTest extends TestCase
      */
     public function testTheCallerCannotRaiseTheLimitWithoutBound(): void
     {
-        $repository = $this->createMock(ProductRepositoryInterface::class);
-        $repository->method('findByName')->willReturn($this->products(500));
+        $products = [];
+        for ($i = 0; $i < 500; ++$i) {
+            $products[] = $this->product('SKU-'.$i);
+        }
 
-        $rows = (new ContentAwareProductSearchTool($repository))('mug', 'en_US', 1_000_000);
+        self::assertCount(100, $this->tool($products)('mug', 'en_US', 1_000_000));
+    }
 
-        self::assertCount(100, $rows);
+    /** Invisible hits are filtered before the limit, so they cannot crowd out visible ones. */
+    public function testTheLimitCountsVisibleProductsOnly(): void
+    {
+        $rows = $this->tool([
+            $this->product('DRAFT-1', enabled: false),
+            $this->product('DRAFT-2', enabled: false),
+            $this->product('LIVE'),
+        ])('p', 'en_US', 1);
+
+        self::assertSame(['LIVE'], array_column($rows, 'code'));
     }
 
     /**
@@ -55,21 +85,15 @@ final class ContentAwareProductSearchToolTest extends TestCase
         $repository = $this->createMock(ProductRepositoryInterface::class);
         $repository->expects(self::never())->method('findByName');
 
-        self::assertSame([], (new ContentAwareProductSearchTool($repository))('   '));
+        self::assertSame([], (new ContentAwareProductSearchTool($repository, $this->visibility()))('   '));
     }
 
-    /** @return list<ProductInterface> */
-    private function products(int $count): array
+    /** @param list<ProductInterface> $products */
+    private function tool(array $products): ContentAwareProductSearchTool
     {
-        $products = [];
-        for ($i = 0; $i < $count; ++$i) {
-            $product = $this->createMock(ProductInterface::class);
-            $product->method('getCode')->willReturn('SKU-'.$i);
-            $product->method('getName')->willReturn('Product '.$i);
-            $product->method('getSlug')->willReturn('product-'.$i);
-            $products[] = $product;
-        }
+        $repository = $this->createStub(ProductRepositoryInterface::class);
+        $repository->method('findByName')->willReturn($products);
 
-        return $products;
+        return new ContentAwareProductSearchTool($repository, $this->visibility());
     }
 }

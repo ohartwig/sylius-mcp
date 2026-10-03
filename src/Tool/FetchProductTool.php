@@ -7,6 +7,7 @@ declare(strict_types=1);
 
 namespace Koh\SyliusMcp\Tool;
 
+use Koh\SyliusMcp\Security\CatalogueVisibility;
 use Mcp\Capability\Attribute\McpTool;
 use Sylius\Component\Core\Model\ProductInterface as CoreProductInterface;
 use Sylius\Component\Product\Model\ProductInterface;
@@ -32,19 +33,24 @@ final class FetchProductTool
     /** @param ProductRepositoryInterface<ProductInterface> $productRepository */
     public function __construct(
         private readonly ProductRepositoryInterface $productRepository,
+        private readonly CatalogueVisibility $visibility,
     ) {
     }
 
     /**
-     * @param string $code Unique product code, e.g. "Basic_regular".
+     * @param string $code               Unique product code, e.g. "Basic_regular".
+     * @param bool   $includeUnpublished Also return a disabled product (a draft). Honoured only for callers who may change the catalogue.
      *
      * @return array{code: string, name: string, slug: string|null, description: string|null, shortDescription: string|null, enabled: bool, mainTaxon: string|null, variants: list<array{code: string, name: string|null, enabled: bool}>}|null
      */
-    public function __invoke(string $code): ?array
+    public function __invoke(string $code, bool $includeUnpublished = false): ?array
     {
         $product = $this->productRepository->findOneBy(['code' => $code]);
 
-        if (!$product instanceof ProductInterface) {
+        // Not visible reads exactly like not there: telling an agent that a
+        // product exists in another channel, or as a draft it may not see,
+        // is an answer it was not entitled to.
+        if (!$product instanceof ProductInterface || !$this->visibility->isVisible($product, $includeUnpublished)) {
             return null;
         }
 
