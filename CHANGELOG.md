@@ -1,3 +1,9 @@
+## [3.0.1](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/compare/v3.0.0...v3.0.1) (2026-10-04)
+
+### :bug: Fixes
+
+* **deps:** accept Sylius 2.2.9 again ([01a9e99](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/commit/01a9e99367abd595d04f57d6866fb9ce457c5e6d))
+
 ## [3.0.0](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/compare/v2.1.0...v3.0.0) (2026-10-03)
 
 ### :boom: BREAKING CHANGES
