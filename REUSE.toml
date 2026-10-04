@@ -18,6 +18,7 @@ path = [
     "composer.json",
     "phpstan.neon",
     "phpunit.xml.dist",
+    "renovate.json",
     "SECURITY.md",
 ]
 precedence = "aggregate"
