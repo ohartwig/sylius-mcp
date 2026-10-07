@@ -1,3 +1,9 @@
+## [3.0.5](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/compare/v3.0.4...v3.0.5) (2026-10-07)
+
+### :repeat: Chores
+
+* **deps:** update dependency phpstan/phpstan to ^2.3.0 ([66384a6](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/commit/66384a69e7f2efbdc1c625f5e03fc888a23544a5))
+
 ## [3.0.4](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/compare/v3.0.3...v3.0.4) (2026-10-06)
 
 ### :repeat: Chores
