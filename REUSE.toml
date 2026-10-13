@@ -20,6 +20,9 @@ path = [
     "phpunit.xml.dist",
     "renovate.json",
     "SECURITY.md",
+    ".mise.toml",
+    ".gitsigners.d/**",
+    "lefthook.yml",
 ]
 precedence = "aggregate"
 SPDX-FileCopyrightText = "2026 Kai Ole Hartwig"
