@@ -10,8 +10,9 @@
         }
     ],
     "support": {
-        "issues": "https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/-/issues",
-        "source": "https://github.com/ole-hartwig/sylius-mcp"
+        "issues": "https://github.com/ohartwig/sylius-mcp/issues",
+        "source": "https://github.com/ohartwig/sylius-mcp",
+        "security": "https://github.com/ohartwig/sylius-mcp/blob/main/SECURITY.md"
     },
     "require": {
         "php": ">=8.5.11",
