@@ -1,3 +1,9 @@
+## [3.0.8](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/compare/v3.0.7...v3.0.8) (2026-10-13)
+
+### :repeat: Chores
+
+* **deps:** update dependency phpunit/phpunit to ^13.4.2 ([dd105de](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/commit/dd105de537977a891ab885569b25c11bb0b82be9))
+
 ## [3.0.7](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/compare/v3.0.6...v3.0.7) (2026-10-13)
 
 ### :repeat: Chores
