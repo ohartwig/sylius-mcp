@@ -1,3 +1,9 @@
+## [3.0.9](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/compare/v3.0.8...v3.0.9) (2026-10-14)
+
+### :repeat: Chores
+
+* **repo-templates:** sync ([5093cfc](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/commit/5093cfc998c34d15897d194032e15da071289ebd))
+
 ## [3.0.8](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/compare/v3.0.7...v3.0.8) (2026-10-13)
 
 ### :repeat: Chores
