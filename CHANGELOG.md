@@ -1,3 +1,11 @@
+## [3.0.12](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/compare/v3.0.11...v3.0.12) (2026-10-18)
+
+### :bug: Fixes
+
+* admit PHP 8.3 and test the floor on it ([9ebb28e](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/commit/9ebb28e00b30dea2bfa949ca0a67950e6662e21e))
+* **docs:** add installation steps to the README ([603ce75](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/commit/603ce75fe37ee854ac49971e2c24bb188019cf7e))
+* **docs:** write the README in English throughout ([5e5b577](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/commit/5e5b57719af18a0e93e19bd83703e76d15ed8385))
+
 ## [3.0.11](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/compare/v3.0.10...v3.0.11) (2026-10-17)
 
 ### :repeat: Chores
