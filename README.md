@@ -11,9 +11,84 @@ Thin layer over the official [`sylius/mcp-server-plugin`](https://github.com/Syl
 project-specific tool configuration, auth and custom MCP tools for the content-commerce use case.
 We do NOT reimplement MCP — we configure/extend the official plugin.
 
+## Install
+
+Requires PHP 8.5, Sylius 2.2 or 2.3 and `sylius/mcp-server-plugin` 0.2, which
+Composer pulls in.
+
+```bash
+composer require koh/sylius-mcp
+```
+
+On Sylius-Standard, Symfony Flex registers `sylius/mcp-server-plugin` and
+`symfony/mcp-bundle` and copies the plugin's config and route files. This
+bundle and the shared contracts bundle are registered by hand. Afterwards
+`config/bundles.php` contains:
+
+```php
+// config/bundles.php
+return [
+    // …
+    Symfony\AI\McpBundle\McpBundle::class => ['all' => true],
+    Sylius\McpServerPlugin\SyliusMcpServerPlugin::class => ['all' => true],
+    Koh\SyliusAgentContracts\KohSyliusAgentContractsBundle::class => ['all' => true],
+    Koh\SyliusMcp\KohSyliusMcpBundle::class => ['all' => true],
+];
+```
+
+Without Flex, add the first two lines yourself and create the plugin's files:
+
+```yaml
+# config/packages/sylius_mcp_server.yaml
+imports:
+    - { resource: "@SyliusMcpServerPlugin/config/config.yaml" }
+```
+
+```yaml
+# config/routes/sylius_mcp_server.yaml
+sylius_mcp_server:
+    resource: '@SyliusMcpServerPlugin/config/routes.yaml'
+```
+
+Import this bundle's route, the MCP server card:
+
+```yaml
+# config/routes/koh_agent.yaml
+koh_mcp:
+    resource: '@KohSyliusMcpBundle/config/routes.php'
+```
+
+Put the MCP endpoint behind the firewall (see *Who may call what*) and point
+the plugin at the shop API — it calls it over HTTP:
+
+```yaml
+# config/packages/security.yaml
+security:
+    access_control:
+        - { path: ^/_mcp, role: ROLE_ADMINISTRATION_ACCESS }
+```
+
+```dotenv
+# .env.local
+SYLIUS_MCP_SERVER_API_SHOP_BASE_URI=https://shop.example.com/api/v2/shop/
+```
+
+Bearer tokens for HTTP clients come from
+[`koh/sylius-mcp-oauth`](https://github.com/ohartwig/sylius-mcp-oauth). Clear
+the cache and check:
+
+```bash
+bin/console cache:clear
+bin/console mcp:server            # stdio: no token needed, the console operator is allowed
+curl -s https://shop.example.com/.well-known/mcp/server-card.json
+```
+
+Over HTTP, `tools/list` on `POST /_mcp` lists `content_product_search` once a
+token is attached.
+
 ## Usage
 
-In the `commerce` app the official plugin exposes the MCP server at `POST /_mcp`
+The official plugin exposes the MCP server at `POST /_mcp`
 (HTTP transport). This bundle registers its own tools with that server
 (`Koh\SyliusMcp\Mcp\KohCapabilityLoader`, tagged `mcp.loader`) and puts a
 policy in front of **every** tool the server registers — ours, the plugin's and
@@ -25,13 +100,6 @@ Own tools:
   content-aware re-ranking via `koh/typo3-sylius-bridge` is a documented TODO.
 - **`fetch_product`** — one product by code, with its variant codes. Replaces
   the plugin's tool of the same name (see *Name conflicts*).
-
-Enable in `commerce`:
-
-1. `composer require koh/sylius-mcp` (pulls `sylius/mcp-server-plugin`).
-2. Register `Koh\SyliusMcp\KohSyliusMcpBundle` in `config/bundles.php`.
-3. Import the plugin config + routes (`config/packages/sylius_mcp_server.yaml`, `config/routes/*`).
-4. Verify: `POST /_mcp` `tools/list` lists `content_product_search`.
 
 ## Resources, prompts, instructions, protocol version
 
@@ -153,7 +221,7 @@ call them is decided here, before the call.
 ### Writes: drafts, preview, confirmation
 
 The catalogue and magazine write tools (`create_product`, `import_product`,
-`update_product`, `create_article`, `update_article`) belong to the commerce
+`update_product`, `create_article`, `update_article`) belong to the shop
 application, not to this package. They are not duplicated here; the policy
 applies to them by name, the same way it applies to the plugin's tools.
 
