@@ -13,7 +13,7 @@ We do NOT reimplement MCP — we configure/extend the official plugin.
 
 ## Install
 
-Requires PHP 8.5, Sylius 2.2 or 2.3 and `sylius/mcp-server-plugin` 0.2, which
+Requires PHP 8.3 or later, Sylius 2.2 or 2.3 and `sylius/mcp-server-plugin` 0.2, which
 Composer pulls in.
 
 ```bash

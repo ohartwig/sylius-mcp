@@ -15,7 +15,7 @@
         "security": "https://github.com/ohartwig/sylius-mcp/blob/main/SECURITY.md"
     },
     "require": {
-        "php": ">=8.5.11",
+        "php": "^8.3",
         "ext-ctype": "*",
         "ext-mbstring": "*",
         "doctrine/persistence": "^3.0 || ^4.0",
@@ -36,7 +36,7 @@
     "require-dev": {
         "koh/dev-sylius": "^1.0",
         "phpstan/phpstan": "^2.3.1",
-        "phpunit/phpunit": "^13.4.3",
+        "phpunit/phpunit": "^12.5 || ^13.4.3",
         "phpstan/extension-installer": "^1.4.3"
     },
     "autoload": {
