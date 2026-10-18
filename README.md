@@ -5,7 +5,7 @@ SPDX-License-Identifier: MIT
 
 # sylius-mcp
 
-> MCP-Schicht ueber sylius/mcp-server-plugin (Config + eigene Tools)
+> MCP layer over sylius/mcp-server-plugin (config + custom tools)
 
 Thin layer over the official [`sylius/mcp-server-plugin`](https://github.com/Sylius/McpServerPlugin):
 project-specific tool configuration, auth and custom MCP tools for the content-commerce use case.
@@ -288,6 +288,6 @@ so it shows every tool that is switched on, not what one token may call.
 
 ---
 
-Teil der **AI Ready Plattform** (Content-Commerce: Sylius × TYPO3). Status: funktionaler First-Pass.
+Part of the **AI Ready Platform** (content commerce: Sylius × TYPO3). Status: functional first pass.
 
 <!-- release: retry after release-bot maintainer grant -->
