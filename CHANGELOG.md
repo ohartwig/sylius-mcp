@@ -1,3 +1,13 @@
+## [4.0.0](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/compare/v3.0.12...v4.0.0) (2026-10-26)
+
+### :boom: BREAKING CHANGES
+
+* requires symfony/mcp-bundle 0.13, whose configuration moved under mcp.servers.<name>; application-level mcp config (app, version, client_transports, discovery, http) must be migrated. Server instructions are now set via mcp.servers.sylius_shop.instructions. Koh\SyliusMcp\Mcp\KohCapabilityLoader is removed.
+
+### :sparkles: Features
+
+* **deps:** sylius/mcp-server-plugin 0.3 with mcp/sdk 0.8 ([c3035f6](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/commit/c3035f659a45f50773d497f87daca494842e2cf4))
+
 ## [3.0.12](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/compare/v3.0.11...v3.0.12) (2026-10-18)
 
 ### :bug: Fixes
