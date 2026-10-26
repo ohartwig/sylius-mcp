@@ -2,7 +2,8 @@
 # SPDX-License-Identifier: MIT
 
 # koh/sylius-mcp — imports the official plugin config for the commerce app.
-# The plugin (sylius/mcp-server-plugin) exposes the MCP HTTP server at POST /_mcp;
-# our #[McpTool] classes are auto-discovered via autoconfigure (config/services.php).
+# The plugin (sylius/mcp-server-plugin) defines the MCP server `sylius_shop`;
+# KohSyliusMcpBundle keeps its HTTP endpoint at POST /_mcp (koh_sylius_mcp.transport_path)
+# and adds our tools, resources and prompts to its registry (config/services.php).
 imports:
     - { resource: "@SyliusMcpServerPlugin/config/config.yaml" }

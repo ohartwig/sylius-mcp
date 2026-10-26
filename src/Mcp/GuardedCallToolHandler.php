@@ -129,7 +129,9 @@ final class GuardedCallToolHandler implements RequestHandlerInterface
             return new Response($request->getId(), $policy->untrusted ? $this->untrusted->mark($result) : $result);
         }
 
-        $call = (new CallToolRequest($request->name, $gate->arguments))->withId($request->getId());
+        // _meta travels along: mcp/sdk 0.8 reads the protocol revision, the
+        // progress token and the trace context from it.
+        $call = (new CallToolRequest($request->name, $gate->arguments))->withId($request->getId())->withMeta($request->getMeta());
 
         try {
             $response = $this->inner->handle($call, $session);

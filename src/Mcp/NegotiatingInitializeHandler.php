@@ -21,20 +21,25 @@ use Mcp\Server\Session\SessionInterface;
 /**
  * initialize with version negotiation.
  *
- * The SDK's own handler answers every client with one fixed version — its
- * constant, 2025-06-18 in mcp/sdk 0.3 — whatever the client asked for. The
- * specification says otherwise: if the server supports the version the client
+ * The specification says: if the server supports the version the client
  * requests, it must answer with that version; if not, with the latest it
- * supports. This handler does that, with 2025-11-25 as the latest.
+ * supports. mcp/sdk 0.3 answered every client with one fixed version; this
+ * handler was written to do it right, with 2025-11-25 as the latest. Since
+ * mcp/sdk 0.8 the SDK's own handler negotiates as well, over the same
+ * handshake-era revisions; this one stays so that what initialize announces
+ * does not change (see below). 2026-07-28 and later have no initialize at
+ * all — the SDK serves them on the same endpoint without a handshake.
  *
  * What 2025-11-25 adds over 2025-06-18 is optional and capability-gated
  * (icons, tasks, sampling with tools, URL-mode elicitation). Answering with it
  * promises the wire format, not features: the server announces none of the
- * new capabilities, and mcp/sdk 0.3 implements none of them.
+ * new capabilities.
  *
  * Everything else is what the SDK's handler returns: the configured server
  * info and instructions, and capabilities derived from what the registry
- * holds.
+ * holds. Like the SDK's handler it records the client's info, capabilities
+ * and the negotiated version in the session; the SDK reads the latter two
+ * later (RequestContext::getProtocolVersion(), ClientGateway).
  *
  * @implements RequestHandlerInterface<InitializeResult>
  */
@@ -70,7 +75,10 @@ final class NegotiatingInitializeHandler implements RequestHandlerInterface
     public function handle(Request $request, SessionInterface $session): Response
     {
         \assert($request instanceof InitializeRequest);
+        $negotiated = self::negotiate($request->protocolVersion);
         $session->set('client_info', $request->clientInfo->jsonSerialize());
+        $session->set('client_capabilities', $request->capabilities->jsonSerialize());
+        $session->set('protocol_version', $negotiated->value);
 
         $tools = $this->registry->hasTools();
         $resources = $this->registry->hasResources() || $this->registry->hasResourceTemplates();
@@ -93,7 +101,7 @@ final class NegotiatingInitializeHandler implements RequestHandlerInterface
             $this->serverInfo,
             $this->instructions,
             null,
-            self::negotiate($request->protocolVersion),
+            $negotiated,
         ));
     }
 

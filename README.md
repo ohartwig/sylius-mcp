@@ -13,8 +13,8 @@ We do NOT reimplement MCP — we configure/extend the official plugin.
 
 ## Install
 
-Requires PHP 8.3 or later, Sylius 2.2 or 2.3 and `sylius/mcp-server-plugin` 0.2, which
-Composer pulls in.
+Requires PHP 8.3 or later, Sylius 2.2 or 2.3 and `sylius/mcp-server-plugin` 0.3
+(with `symfony/mcp-bundle` 0.13 and `mcp/sdk` 0.8), which Composer pulls in.
 
 ```bash
 composer require koh/sylius-mcp
@@ -88,11 +88,18 @@ token is attached.
 
 ## Usage
 
-The official plugin exposes the MCP server at `POST /_mcp`
-(HTTP transport). This bundle registers its own tools with that server
-(`Koh\SyliusMcp\Mcp\KohCapabilityLoader`, tagged `mcp.loader`) and puts a
-policy in front of **every** tool the server registers — ours, the plugin's and
-the application's own.
+The official plugin defines the MCP server `sylius_shop`
+(`mcp.servers.sylius_shop`). This bundle keeps its HTTP endpoint at
+`POST /_mcp` — the plugin's own default since 0.3 is `/mcp/shop`; the path
+comes from `koh_sylius_mcp.transport_path` — adds its own tools, resources and
+prompts to that server's `registry`, and puts a policy in front of **every**
+tool the server registers — ours, the plugin's and the application's own.
+
+It also sets `http.allowed_hosts: false` on that server: the SDK's DNS
+rebinding check would otherwise admit `localhost` only. Browser origins are
+checked by this bundle instead (see *Origin check and CORS*). An application
+that wants the SDK's host check as well sets
+`mcp.servers.sylius_shop.http.allowed_hosts` to its host names.
 
 Own tools:
 
@@ -122,14 +129,15 @@ enforces — structure first, preview, the user's yes, confirm.
 
 **Instructions**: `initialize` sends `Koh\SyliusMcp\Mcp\ServerInstructions`
 (tool classes, preview/confirm, drafts, the untrusted fence). Set
-`mcp.instructions` in the application to replace them.
+`mcp.servers.sylius_shop.instructions` in the application to replace them.
 
 **Protocol version**: `initialize` negotiates as the specification asks — a
 supported requested version (2025-11-25, 2025-06-18, 2025-03-26, 2024-11-05)
-is answered with itself, anything else with 2025-11-25. The SDK's own handler
-always answered 2025-06-18. None of the optional 2025-11-25 features (tasks,
-URL-mode elicitation, sampling with tools) is announced; mcp/sdk 0.3 does not
-implement them.
+is answered with itself, anything else with 2025-11-25. None of the optional
+2025-11-25 features (tasks, URL-mode elicitation, sampling with tools) is
+announced. Clients on 2026-07-28, which has no `initialize`, are served by
+mcp/sdk 0.8 on the same endpoint without a handshake; `tools/call`,
+`tools/list` and `resources/read` go through the same guarded handlers there.
 
 ## Tool policy
 
@@ -262,7 +270,7 @@ token. Only a second call with exactly the same arguments plus
 `confirm: <token>` runs the tool. The token is bound to tool, arguments,
 administrator and access token, expires after `writes.confirmation_ttl`
 seconds (300) and works once (when `cache.app` is available). This is the
-stand-in for MCP elicitation, which mcp/sdk 0.3 does not implement.
+stand-in for MCP elicitation, which mcp/sdk 0.3 did not implement.
 `tools.<name>.confirm` overrides it per tool.
 
 **`complete_checkout` is switched off.** It places a binding order, and the

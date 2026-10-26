@@ -117,7 +117,7 @@ final class McpServerCardControllerTest extends TestCase
         /** @var array<string, array{enabled?: bool, class?: string|null, idempotent?: bool|null, destructive?: bool|null, untrusted?: bool|null}> $config */
         $registry = new PolicyRegistry(new Registry(), new ToolPolicyProvider($config));
         foreach ($tools as $name) {
-            $registry->registerTool(new Tool($name, ['type' => 'object', 'properties' => []], 'Tool '.$name, null), 'Vendor\\'.$name, true);
+            $registry->registerTool(new Tool($name, null, ['type' => 'object', 'properties' => []], 'Tool '.$name, null), 'Vendor\\'.$name);
         }
         if ($withPrompt) {
             $registry->registerPrompt(new Prompt('catalogue_import'), 'Vendor\\Prompt', [], true);

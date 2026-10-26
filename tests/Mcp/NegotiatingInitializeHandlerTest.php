@@ -32,6 +32,21 @@ final class NegotiatingInitializeHandlerTest extends TestCase
         self::assertSame('2025-11-25', $this->initialize('2030-01-01')['protocolVersion']);
     }
 
+    /**
+     * What the SDK's own handler records and the SDK reads later: the
+     * negotiated revision (RequestContext) and the client's capabilities
+     * (ClientGateway).
+     */
+    public function testTheSessionKeepsTheNegotiatedVersionAndTheClient(): void
+    {
+        $session = new Session(new InMemorySessionStore());
+        $this->initialize('2025-06-18', session: $session);
+
+        self::assertSame('2025-06-18', $session->get('protocol_version'));
+        self::assertSame(['name' => 'client', 'version' => '1'], $session->get('client_info'));
+        self::assertNotNull($session->get('client_capabilities'));
+    }
+
     public function testInstructionsAndCapabilitiesAreSent(): void
     {
         $result = $this->initialize('2025-11-25', 'Use dryRun.');
@@ -43,10 +58,10 @@ final class NegotiatingInitializeHandlerTest extends TestCase
     }
 
     /** @return array<string, mixed> */
-    private function initialize(string $version, ?string $instructions = null): array
+    private function initialize(string $version, ?string $instructions = null, ?Session $session = null): array
     {
         $registry = new Registry();
-        $registry->registerTool(new Tool('t', ['type' => 'object', 'properties' => []], null, null), 'X', true);
+        $registry->registerTool(new Tool('t', null, ['type' => 'object', 'properties' => []], null, null), 'X');
         $handler = NegotiatingInitializeHandler::create($registry, 'shop', '1.0', instructions: $instructions);
 
         $request = InitializeRequest::fromArray(['jsonrpc' => '2.0', 'id' => 1, 'method' => 'initialize', 'params' => [
@@ -56,7 +71,7 @@ final class NegotiatingInitializeHandlerTest extends TestCase
         ]]);
         self::assertTrue($handler->supports($request));
         self::assertSame('2025-11-25', NegotiatingInitializeHandler::negotiate('garbage')->value);
-        $response = $handler->handle($request, new Session(new InMemorySessionStore()));
+        $response = $handler->handle($request, $session ?? new Session(new InMemorySessionStore()));
         self::assertInstanceOf(Response::class, $response);
         self::assertInstanceOf(InitializeResult::class, $response->result);
 

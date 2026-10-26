@@ -20,10 +20,16 @@ use Koh\SyliusMcp\Tests\Support\MemoryLogger;
 use Koh\SyliusMcp\Tests\Support\RecordingTool;
 use Mcp\Capability\Registry;
 use Mcp\Capability\Registry\ReferenceHandler;
+use Mcp\Schema\Content\TextContent;
 use Mcp\Schema\JsonRpc\Error;
+use Mcp\Schema\JsonRpc\Request;
+use Mcp\Schema\JsonRpc\Response;
+use Mcp\Schema\Result\CallToolResult;
 use Mcp\Schema\Request\CallToolRequest;
 use Mcp\Schema\Tool;
 use Mcp\Server\Handler\Request\CallToolHandler;
+use Mcp\Server\Handler\Request\RequestHandlerInterface;
+use Mcp\Server\Session\SessionInterface;
 use Mcp\Server\Session\InMemorySessionStore;
 use Mcp\Server\Session\Session;
 use PHPUnit\Framework\TestCase;
@@ -49,9 +55,8 @@ final class GuardedToolHandlersTest extends TestCase
         foreach (['search_products', 'add_item_to_order', 'update_product'] as $name) {
             $this->tools[$name] = new RecordingTool();
             $this->registry->registerTool(
-                new Tool($name, ['type' => 'object', 'properties' => ['code' => ['type' => 'string']]], $name, null),
+                new Tool($name, null, ['type' => 'object', 'properties' => ['code' => ['type' => 'string']]], $name, null),
                 [$this->tools[$name], '__invoke'],
-                true,
             );
         }
     }
@@ -62,6 +67,43 @@ final class GuardedToolHandlersTest extends TestCase
 
         self::assertFalse($result->isError);
         self::assertSame([['code' => 'MUG', 'description' => '']], $this->tools['update_product']->calls);
+    }
+
+    /**
+     * The call is rebuilt with the arguments the write gate leaves; its _meta
+     * must survive, mcp/sdk 0.8 reads the protocol revision and the progress
+     * token from it.
+     */
+    public function testTheSdkHandlerGetsTheRequestMeta(): void
+    {
+        $inner = new class implements RequestHandlerInterface {
+            public ?Request $seen = null;
+
+            public function supports(Request $request): bool
+            {
+                return true;
+            }
+
+            /** @return Response<CallToolResult> */
+            public function handle(Request $request, SessionInterface $session): Response
+            {
+                $this->seen = $request;
+
+                return new Response($request->getId(), new CallToolResult([new TextContent('ok')]));
+            }
+        };
+        $handler = new GuardedCallToolHandler($this->registry, $inner, new ToolPolicyProvider(), self::decider(), self::callers(), auditor: new ToolCallAuditor());
+
+        $request = CallToolRequest::fromArray(['jsonrpc' => '2.0', 'id' => 7, 'method' => 'tools/call', 'params' => [
+            'name' => 'search_products',
+            'arguments' => ['code' => 'MUG'],
+            '_meta' => ['progressToken' => 'p-1', 'io.modelcontextprotocol/protocolVersion' => '2026-07-28'],
+        ]]);
+        $handler->handle($request, new Session(new InMemorySessionStore()));
+
+        self::assertNotNull($inner->seen);
+        self::assertSame(7, $inner->seen->getId());
+        self::assertSame(['progressToken' => 'p-1', 'io.modelcontextprotocol/protocolVersion' => '2026-07-28'], $inner->seen->getMeta());
     }
 
     /**

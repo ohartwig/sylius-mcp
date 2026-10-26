@@ -12,7 +12,8 @@ namespace Koh\SyliusMcp\Mcp;
  * into the model's system prompt. They state the rules the server enforces
  * anyway, so the model plans with them instead of running into them.
  *
- * The application can replace the text with `mcp.instructions`.
+ * The application can replace the text with
+ * `mcp.servers.sylius_shop.instructions`.
  */
 final class ServerInstructions
 {

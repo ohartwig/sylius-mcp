@@ -10,11 +10,11 @@ use Koh\SyliusAgentContracts\Http\AgentJsonResponder;
 use Koh\SyliusMcp\Agent\McpEndpointProvider;
 use Koh\SyliusMcp\Controller\McpServerCardController;
 use Koh\SyliusMcp\DependencyInjection\McpReferenceContainerPass;
+use Koh\SyliusMcp\DependencyInjection\McpServerIds;
 use Koh\SyliusMcp\EventSubscriber\McpOriginSubscriber;
 use Koh\SyliusMcp\Mcp\FilteredListToolsHandler;
 use Koh\SyliusMcp\Mcp\GuardedCallToolHandler;
 use Koh\SyliusMcp\Mcp\GuardedReadResourceHandler;
-use Koh\SyliusMcp\Mcp\KohCapabilityLoader;
 use Koh\SyliusMcp\Mcp\McpCatalogue;
 use Koh\SyliusMcp\Mcp\NegotiatingInitializeHandler;
 use Koh\SyliusMcp\Mcp\PolicyRegistry;
@@ -50,15 +50,15 @@ return static function (ContainerConfigurator $container): void {
         ->autowire()
         ->autoconfigure();
 
-    // Tagged explicitly and with autoconfiguration off: the mcp-bundle's
-    // autoconfiguration would tag them as well, and a service tagged twice is
-    // yielded twice by a tagged iterator.
+    // Tools, resources and prompts are tagged by the mcp-bundle's
+    // autoconfiguration (one tag per #[McpTool]/#[McpResource]/#[McpPrompt]
+    // method). Its McpPass registers them with every server whose
+    // `registry:` lists them — KohSyliusMcpBundle::prependExtension() adds
+    // this package's namespaces to the plugin's server.
     foreach ([ContentAwareProductSearchTool::class, FetchProductTool::class] as $tool) {
         $services->set($tool)
-            ->autoconfigure(false)
             ->arg('$productRepository', service('sylius.repository.product'))
-            ->arg('$visibility', service(CatalogueVisibility::class))
-            ->tag('mcp.tool');
+            ->arg('$visibility', service(CatalogueVisibility::class));
     }
 
     $services->set(UntrustedContentMarker::class);
@@ -102,7 +102,7 @@ return static function (ContainerConfigurator $container): void {
     $services->set('koh_sylius_mcp.sdk_call_tool_handler', CallToolHandler::class)
         ->autoconfigure(false)
         ->args([
-            service('mcp.registry'),
+            service(McpServerIds::REGISTRY),
             service(McpReferenceContainerPass::REFERENCE_HANDLER),
             service('logger')->nullOnInvalid(),
         ])
@@ -113,7 +113,7 @@ return static function (ContainerConfigurator $container): void {
     $services->set(GuardedCallToolHandler::class)
         ->autoconfigure(false)
         ->args([
-            service('mcp.registry'),
+            service(McpServerIds::REGISTRY),
             service('koh_sylius_mcp.sdk_call_tool_handler'),
             service(ToolPolicyProvider::class),
             service(ToolAccessDecider::class),
@@ -127,23 +127,19 @@ return static function (ContainerConfigurator $container): void {
         ->tag('monolog.logger', ['channel' => 'mcp']);
 
     $services->set(CatalogueResources::class)
-        ->autoconfigure(false)
         ->args([
             service('sylius.repository.channel'),
             service('sylius.repository.taxon'),
             service('sylius.repository.product_attribute'),
             service('sylius.repository.product_option'),
-        ])
-        ->tag('mcp.resource');
+        ]);
 
-    $services->set(CataloguePrompts::class)
-        ->autoconfigure(false)
-        ->tag('mcp.prompt');
+    $services->set(CataloguePrompts::class);
 
     $services->set('koh_sylius_mcp.sdk_read_resource_handler', ReadResourceHandler::class)
         ->autoconfigure(false)
         ->args([
-            service('mcp.registry'),
+            service(McpServerIds::REGISTRY),
             service(McpReferenceContainerPass::REFERENCE_HANDLER),
             service('logger')->nullOnInvalid(),
         ]);
@@ -160,31 +156,27 @@ return static function (ContainerConfigurator $container): void {
     $services->set(NegotiatingInitializeHandler::class)
         ->autoconfigure(false)
         ->factory([NegotiatingInitializeHandler::class, 'create'])
+        // Server info and instructions are copied from the server builder by
+        // McpReferenceContainerPass.
         ->args([
-            service('mcp.registry'),
-            param('mcp.app'),
-            param('mcp.version'),
-            param('mcp.description'),
-            param('mcp.website_url'),
-            param('mcp.instructions'),
+            service(McpServerIds::REGISTRY),
+            '$name' => 'app',
+            '$version' => '0.0.1',
+            '$description' => null,
+            '$websiteUrl' => null,
+            '$instructions' => null,
         ])
         ->tag('mcp.request_handler');
 
     $services->set(FilteredListToolsHandler::class)
         ->autoconfigure(false)
         ->args([
-            service('mcp.registry'),
+            service(McpServerIds::REGISTRY),
             service(ToolPolicyProvider::class),
             service(ToolAccessDecider::class),
             service(McpCallerResolver::class),
         ])
         ->tag('mcp.request_handler');
-
-    $services->set(KohCapabilityLoader::class)
-        ->autoconfigure(false)
-        ->args([service('logger')->nullOnInvalid()])
-        ->tag('mcp.loader')
-        ->tag('monolog.logger', ['channel' => 'mcp']);
 
     $services->set(ToolPolicyProvider::class)
         ->args([
@@ -228,7 +220,7 @@ return static function (ContainerConfigurator $container): void {
         ]);
 
     $services->set(PolicyRegistry::class)
-        ->decorate('mcp.registry', invalidBehavior: ContainerInterface::IGNORE_ON_INVALID_REFERENCE)
+        ->decorate(McpServerIds::REGISTRY, invalidBehavior: ContainerInterface::IGNORE_ON_INVALID_REFERENCE)
         ->args([
             service('.inner'),
             service(ToolPolicyProvider::class),
@@ -238,8 +230,8 @@ return static function (ContainerConfigurator $container): void {
 
     $services->set(McpCatalogue::class)
         ->args([
-            service('mcp.registry'),
-            service_closure('mcp.server')->nullOnInvalid(),
+            service(McpServerIds::REGISTRY),
+            service_closure(McpServerIds::SERVER)->nullOnInvalid(),
         ]);
 
     $services->set(McpServerCardController::class)

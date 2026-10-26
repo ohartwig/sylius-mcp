@@ -54,9 +54,8 @@ final class WriteFlowTest extends TestCase
         foreach (['update_product' => ['code' => 'MUG', 'status' => 'updated'], 'create_product' => ['code' => 'NEW', 'status' => 'created'], 'add_item_to_order' => ['ok' => true]] as $name => $result) {
             $this->tools[$name] = new RecordingTool($result);
             $this->registry->registerTool(
-                new Tool($name, ['type' => 'object', 'properties' => ['code' => ['type' => 'string'], 'description' => ['type' => 'string']]], $name, null),
+                new Tool($name, null, ['type' => 'object', 'properties' => ['code' => ['type' => 'string'], 'description' => ['type' => 'string']]], $name, null),
                 [$this->tools[$name], '__invoke'],
-                true,
             );
         }
     }
@@ -149,7 +148,7 @@ final class WriteFlowTest extends TestCase
     public function testConfirmationCanBeSwitchedOffPerTool(): void
     {
         $registry = new PolicyRegistry(new Registry(), $policies = new ToolPolicyProvider(['update_product' => ['confirm' => false]]));
-        $registry->registerTool(new Tool('update_product', ['type' => 'object', 'properties' => []], 'u', null), [$this->tools['update_product'], '__invoke'], true);
+        $registry->registerTool(new Tool('update_product', null, ['type' => 'object', 'properties' => []], 'u', null), [$this->tools['update_product'], '__invoke']);
 
         self::callTool($this->handler($registry, $policies), 'update_product', ['code' => 'MUG', 'description' => 'x']);
 

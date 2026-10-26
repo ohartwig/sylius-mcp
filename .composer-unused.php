@@ -17,7 +17,7 @@ return static function (Configuration $config): Configuration {
     return $config
         // The plugin this bundle is a layer over. config/packages/
         // sylius_mcp_server.yaml imports @SyliusMcpServerPlugin/config/config.yaml
-        // by resource path, which is what puts the MCP server on POST /_mcp and
+        // by resource path, which is what defines the MCP server (on POST /_mcp) and
         // makes the #[McpTool] classes here reachable. Removing the require
         // would leave that import pointing at a bundle that is not installed.
         ->addNamedFilter(NamedFilter::fromString('sylius/mcp-server-plugin'));

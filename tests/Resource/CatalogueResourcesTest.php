@@ -9,9 +9,9 @@ namespace Koh\SyliusMcp\Tests\Resource;
 
 use Doctrine\Persistence\ObjectRepository;
 use Koh\SyliusMcp\Mcp\GuardedReadResourceHandler;
-use Koh\SyliusMcp\Mcp\KohCapabilityLoader;
 use Koh\SyliusMcp\Resource\CatalogueResources;
 use Koh\SyliusMcp\Tests\Support\McpSecurityFixtures;
+use Mcp\Capability\Discovery\Discoverer;
 use Mcp\Capability\Registry;
 use Mcp\Capability\Registry\Container;
 use Mcp\Capability\Registry\ReferenceHandler;
@@ -34,10 +34,13 @@ final class CatalogueResourcesTest extends TestCase
 {
     use McpSecurityFixtures;
 
-    public function testTheLoaderRegistersTheResourcesAndPrompts(): void
+    /**
+     * The attributes, read the way the SDK reads them. Which server serves
+     * them is ContainerWiringTest's business.
+     */
+    public function testTheAttributesDescribeTheResourcesAndPrompts(): void
     {
-        $registry = new Registry();
-        (new KohCapabilityLoader())->load($registry);
+        $registry = self::discovered();
 
         self::assertSame(
             ['sylius://channels', 'sylius://product-attributes', 'sylius://product-options', 'sylius://taxons'],
@@ -114,8 +117,7 @@ final class CatalogueResourcesTest extends TestCase
 
     public function testReadingNeedsAReadScope(): void
     {
-        $registry = new Registry();
-        (new KohCapabilityLoader())->load($registry);
+        $registry = self::discovered();
         $container = new Container();
         $container->set(CatalogueResources::class, $this->resources());
         $inner = new ReadResourceHandler($registry, new ReferenceHandler($container));
@@ -127,6 +129,20 @@ final class CatalogueResourcesTest extends TestCase
         self::assertInstanceOf(Error::class, (new GuardedReadResourceHandler($inner, self::callers(scopes: [])))->handle($request, $session));
         self::assertInstanceOf(Error::class, (new GuardedReadResourceHandler($inner, self::callers(user: null)))->handle($request, $session));
         self::assertInstanceOf(Response::class, (new GuardedReadResourceHandler($inner, self::callers(scopes: ['mcp:read'])))->handle($request, $session));
+    }
+
+    private static function discovered(): Registry
+    {
+        $state = (new Discoverer())->discover(\dirname(__DIR__, 2), ['src/Resource', 'src/Prompt']);
+        $registry = new Registry();
+        foreach ($state->getResources() as $reference) {
+            $registry->registerResource($reference->resource, $reference->handler);
+        }
+        foreach ($state->getPrompts() as $reference) {
+            $registry->registerPrompt($reference->prompt, $reference->handler, $reference->completionProviders);
+        }
+
+        return $registry;
     }
 
     /**

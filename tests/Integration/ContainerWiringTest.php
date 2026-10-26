@@ -9,6 +9,7 @@ namespace Koh\SyliusMcp\Tests\Integration;
 
 use Koh\SyliusAgentContracts\Context\AgentContextFactoryInterface;
 use Koh\SyliusAgentContracts\Http\AgentJsonResponder;
+use Koh\SyliusMcp\DependencyInjection\McpServerIds;
 use Koh\SyliusMcp\KohSyliusMcpBundle;
 use Koh\SyliusMcp\Mcp\FilteredListToolsHandler;
 use Koh\SyliusMcp\Mcp\GuardedCallToolHandler;
@@ -49,10 +50,10 @@ final class ContainerWiringTest extends TestCase
     public function testTheServerServesOurToolsAndThePlugins(): void
     {
         $container = $this->container();
-        $container->get('mcp.server');
+        $container->get(McpServerIds::SERVER);
 
         /** @var RegistryInterface $registry */
-        $registry = $container->get('mcp.registry');
+        $registry = $container->get(McpServerIds::REGISTRY);
         $names = array_keys($registry->getTools()->references);
 
         self::assertContains('content_product_search', $names);
@@ -64,10 +65,37 @@ final class ContainerWiringTest extends TestCase
         self::assertSame('Koh\\SyliusMcp\\Tool\\FetchProductTool', \is_array($handler) ? $handler[0] : $handler);
     }
 
+    public function testTheServerServesOurResourcesAndPrompts(): void
+    {
+        $container = $this->container();
+        $container->get(McpServerIds::SERVER);
+
+        /** @var RegistryInterface $registry */
+        $registry = $container->get(McpServerIds::REGISTRY);
+        $resources = array_keys($registry->getResources()->references);
+        sort($resources);
+        $prompts = array_keys($registry->getPrompts()->references);
+        sort($prompts);
+
+        self::assertSame(['sylius://channels', 'sylius://product-attributes', 'sylius://product-options', 'sylius://taxons'], $resources);
+        self::assertSame(['catalogue_import', 'product_copy_review'], $prompts);
+    }
+
+    /**
+     * The plugin moves its server to /mcp/shop; the endpoint stays at
+     * transport_path, where the origin check, the server card and the
+     * firewall rules expect it.
+     */
+    public function testTheEndpointStaysAtTheTransportPath(): void
+    {
+        self::assertSame(['/_mcp'], $this->routePaths($this->container()));
+        self::assertSame(['/agents/mcp'], $this->routePaths($this->container(transportPath: '/agents/mcp')));
+    }
+
     public function testToolsListGoesThroughThePermissionFilter(): void
     {
         $container = $this->container(['mcp:read']);
-        $container->get('mcp.server');
+        $container->get(McpServerIds::SERVER);
 
         /** @var FilteredListToolsHandler $list */
         $list = $container->get(FilteredListToolsHandler::class);
@@ -84,7 +112,7 @@ final class ContainerWiringTest extends TestCase
     public function testAToolCallResolvesTheHandlerFromTheServiceLocator(): void
     {
         $container = $this->container();
-        $container->get('mcp.server');
+        $container->get(McpServerIds::SERVER);
 
         /** @var GuardedCallToolHandler $call */
         $call = $container->get(GuardedCallToolHandler::class);
@@ -102,7 +130,7 @@ final class ContainerWiringTest extends TestCase
     public function testInitializeNegotiatesAndSendsInstructions(): void
     {
         $container = $this->container();
-        $container->get('mcp.server');
+        $container->get(McpServerIds::SERVER);
 
         /** @var NegotiatingInitializeHandler $initialize */
         $initialize = $container->get(NegotiatingInitializeHandler::class);
@@ -114,13 +142,23 @@ final class ContainerWiringTest extends TestCase
         $result = json_decode((string) json_encode($response->result), true);
 
         self::assertSame('2025-11-25', $result['protocolVersion']);
+        self::assertSame(['name' => 'test', 'version' => '1'], $result['serverInfo'], 'the server info configured for the server');
         self::assertStringContainsString('UNTRUSTED SHOP DATA', (string) $result['instructions']);
         self::assertArrayHasKey('resources', $result['capabilities']);
         self::assertArrayHasKey('prompts', $result['capabilities']);
     }
 
+    /** @return list<string> */
+    private function routePaths(ContainerBuilder $container): array
+    {
+        /** @var list<array{path: string}> $routes */
+        $routes = $container->getDefinition('mcp.server.route_loader')->getArgument(0);
+
+        return array_column($routes, 'path');
+    }
+
     /** @param list<string> $scopes */
-    private function container(array $scopes = ['mcp']): ContainerBuilder
+    private function container(array $scopes = ['mcp'], ?string $transportPath = null): ContainerBuilder
     {
         $container = new ContainerBuilder();
         $container->setParameter('kernel.debug', false);
@@ -141,17 +179,27 @@ final class ContainerWiringTest extends TestCase
             $container->registerExtension($extension);
             $bundle->build($container);
         }
-        $container->loadFromExtension('mcp', ['app' => 'test', 'version' => '1', 'client_transports' => ['http' => true, 'stdio' => false], 'discovery' => ['scan_dirs' => []]]);
+        // What the plugin's config/config.yaml sets for its server.
+        $container->loadFromExtension('mcp', ['servers' => [McpServerIds::NAME => [
+            'name' => 'test',
+            'version' => '1',
+            'transports' => ['http' => true, 'stdio' => false],
+            'http' => ['path' => '/mcp/shop'],
+            'registry' => ['tools' => ['Sylius\\McpServerPlugin\\Tool\\']],
+        ]]]);
         $container->loadFromExtension('koh_sylius_mcp', ['tools' => ['complete_checkout' => ['enabled' => false]]]);
+        if (null !== $transportPath) {
+            $container->loadFromExtension('koh_sylius_mcp', ['transport_path' => $transportPath]);
+        }
         (new SyliusMcpServerExtension())->load([], $container);
 
         $container->addCompilerPass(new class implements CompilerPassInterface {
             public function process(ContainerBuilder $container): void
             {
-                foreach (['mcp.server', 'mcp.registry', FilteredListToolsHandler::class, GuardedCallToolHandler::class, NegotiatingInitializeHandler::class] as $id) {
+                foreach ([McpServerIds::SERVER, McpServerIds::REGISTRY, FilteredListToolsHandler::class, GuardedCallToolHandler::class, NegotiatingInitializeHandler::class, 'mcp.server.route_loader'] as $id) {
                     $container->findDefinition($id)->setPublic(true);
                 }
-                $container->getAlias('mcp.registry')->setPublic(true);
+                $container->getAlias(McpServerIds::REGISTRY)->setPublic(true);
             }
         }, PassConfig::TYPE_BEFORE_REMOVING);
         $container->compile();
@@ -192,8 +240,8 @@ final class ContainerWiringTest extends TestCase
             'sylius.context.channel' => $this->createStub(ChannelContextInterface::class),
             AgentContextFactoryInterface::class => $this->createStub(AgentContextFactoryInterface::class),
             AgentJsonResponder::class => new AgentJsonResponder(),
-            'sylius_mcp_server.http_client.api_shop' => $http,
-            'sylius_mcp_server.http_client.api_shop_merge_patch' => $http,
+            'sylius_mcp_server.http_client.api_shop.base' => $http,
+            'sylius_mcp_server.http_client.api_shop_merge_patch.base' => $http,
         ];
     }
 }
