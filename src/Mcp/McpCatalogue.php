@@ -15,11 +15,12 @@ use Mcp\Server;
  * Read access to what the MCP server actually serves, for documents that
  * describe it from outside the protocol — the server card.
  *
- * The registry is filled when the server is built: the builder runs every
- * loader once, in its build(). Reading `mcp.registry` before that returns an
- * empty list, so every read here first makes sure the server exists. The
- * server comes in as a closure so that a request which never reads the
- * catalogue does not build it.
+ * The registry is filled when the server is built: the mcp-bundle hands the
+ * builder its own registry, and the builder then loads every element into it
+ * once, in its build(). Reading the registry before that returns an empty
+ * list, so every read here first makes sure the server exists. The server
+ * comes in as a closure so that a request which never reads the catalogue
+ * does not build it.
  */
 final class McpCatalogue
 {

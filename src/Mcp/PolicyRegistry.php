@@ -9,7 +9,6 @@ namespace Koh\SyliusMcp\Mcp;
 
 use Koh\SyliusMcp\Policy\ToolPolicy;
 use Koh\SyliusMcp\Policy\ToolPolicyProvider;
-use Mcp\Capability\Discovery\DiscoveryState;
 use Mcp\Capability\Registry\PromptReference;
 use Mcp\Capability\Registry\ResourceReference;
 use Mcp\Capability\Registry\ResourceTemplateReference;
@@ -17,20 +16,20 @@ use Mcp\Capability\Registry\ToolReference;
 use Mcp\Capability\RegistryInterface;
 use Mcp\Schema\Page;
 use Mcp\Schema\Prompt;
-use Mcp\Schema\Resource;
+use Mcp\Schema\ResourceDefinition;
 use Mcp\Schema\ResourceTemplate;
 use Mcp\Schema\Tool;
 use Psr\Log\LoggerInterface;
 use Psr\Log\NullLogger;
 
 /**
- * Decorates `mcp.registry`: every tool passes through here on its way in,
- * whichever loader registered it — sylius/mcp-server-plugin, the mcp-bundle's
- * discovery of the application's own tools, or this package.
- *
- * (registerTool() for manual registrations, setDiscoveryState() for what the
- * mcp-bundle's discovery finds). That makes it the one place where three
- * things can be decided for all of them alike:
+ * Decorates the registry of the MCP server this package serves on (see
+ * McpServerIds): every tool passes through here on its way in, whichever
+ * source registered it — sylius/mcp-server-plugin's tools and this package's,
+ * which the mcp-bundle registers from the container, a custom loader, or the
+ * SDK's file-based discovery. Since mcp/sdk 0.6 all of them call
+ * registerTool(). That makes it the one place where three things can be
+ * decided for all of them alike:
  *
  *  - **Switched off** (`koh_sylius_mcp.tools.<name>.enabled: false`): the tool
  *    is never registered, so it is absent from tools/list, from the server
@@ -39,10 +38,11 @@ use Psr\Log\NullLogger;
  *    replace whatever the tool did or did not declare. The plugin's tools
  *    declare none, and a client cannot tell `fetch_order` from
  *    `complete_checkout` without them.
- *  - **Name conflicts**: the SDK registry keys tools by name, so two tools
- *    called `fetch_product` silently overwrite each other in whatever order
- *    the loaders happen to run. Here a tool from this package always wins, the
- *    decision is logged, and the order no longer matters.
+ *  - **Name conflicts**: the SDK registry keys tools by name and lets the last
+ *    registration win, so two tools called `fetch_product` silently overwrite
+ *    each other in whatever order they happen to be registered. Here a tool
+ *    from this package always wins, the decision is logged, and the order no
+ *    longer matters.
  */
 final class PolicyRegistry implements RegistryInterface
 {
@@ -63,53 +63,20 @@ final class PolicyRegistry implements RegistryInterface
     ) {
     }
 
-    public function registerTool(Tool $tool, callable|array|string $handler, bool $isManual = false): void
+    /**
+     * A tool the policy keeps out is not stored. The interface still asks for
+     * a reference: the one returned is detached, so a caller that tracks
+     * references by identity — the SDK's DiscoveryLoader does — never takes
+     * the tool that holds the name for its own and never unregisters it.
+     */
+    public function registerTool(Tool $tool, callable|array|string $handler): ToolReference
     {
         $admitted = $this->admit($tool, $handler);
         if (null === $admitted) {
-            return;
+            return new ToolReference($tool, $handler);
         }
 
-        // A tool of ours must not lose against a manual registration the
-        // inner registry would otherwise prefer.
-        $this->inner->registerTool($admitted, $handler, $isManual || self::isOwn(self::ownerOf($handler)));
-    }
-
-    /**
-     * The SDK's DiscoveryLoader — the one that registers the application's
-     * own tools from mcp.discovery.scan_dirs — does not call registerTool().
-     * It hands the registry a whole discovery state, which the SDK registry
-     * writes over its tool list, over manual registrations of the same name
-     * included. Without this method every discovered tool would bypass the
-     * policy: no switch, no annotations, no conflict rule.
-     *
-     * Each discovered tool is admitted the same way registerTool() admits
-     * one. A name that is already held — the builder runs the manual loaders
-     * first — stays with its holder.
-     */
-    public function setDiscoveryState(DiscoveryState $state): void
-    {
-        $tools = [];
-        foreach ($state->getTools() as $reference) {
-            $name = $reference->tool->name;
-            if (isset($this->owners[$name]) && $this->owners[$name] !== self::ownerOf($reference->handler)) {
-                $this->logger->notice('Discovered MCP tool "{tool}" from {owner} ignored: {holder} provides it.', ['tool' => $name, 'owner' => self::ownerOf($reference->handler), 'holder' => $this->owners[$name]]);
-
-                continue;
-            }
-
-            $admitted = $this->admit($reference->tool, $reference->handler);
-            if (null !== $admitted) {
-                $tools[$name] = new ToolReference($admitted, $reference->handler, $reference->isManual);
-            }
-        }
-
-        $this->inner->setDiscoveryState(new DiscoveryState(
-            $tools,
-            $state->getResources(),
-            $state->getPrompts(),
-            $state->getResourceTemplates(),
-        ));
+        return $this->inner->registerTool($admitted, $handler);
     }
 
     /**
@@ -150,6 +117,7 @@ final class PolicyRegistry implements RegistryInterface
 
         return new Tool(
             name: $tool->name,
+            title: $tool->title,
             inputSchema: $inputSchema,
             description: $description,
             annotations: $policy->annotations($tool->annotations),
@@ -159,29 +127,61 @@ final class PolicyRegistry implements RegistryInterface
         );
     }
 
-    public function registerResource(Resource $resource, callable|array|string $handler, bool $isManual = false): void
+    public function registerResource(ResourceDefinition $resource, callable|array|string $handler): ResourceReference
     {
-        $this->inner->registerResource($resource, $handler, $isManual);
+        return $this->inner->registerResource($resource, $handler);
     }
 
-    public function registerResourceTemplate(ResourceTemplate $template, callable|array|string $handler, array $completionProviders = [], bool $isManual = false): void
+    public function registerResourceTemplate(ResourceTemplate $template, callable|array|string $handler, array $completionProviders = []): ResourceTemplateReference
     {
-        $this->inner->registerResourceTemplate($template, $handler, $completionProviders, $isManual);
+        return $this->inner->registerResourceTemplate($template, $handler, $completionProviders);
     }
 
-    public function registerPrompt(Prompt $prompt, callable|array|string $handler, array $completionProviders = [], bool $isManual = false): void
+    public function registerPrompt(Prompt $prompt, callable|array|string $handler, array $completionProviders = []): PromptReference
     {
-        $this->inner->registerPrompt($prompt, $handler, $completionProviders, $isManual);
+        return $this->inner->registerPrompt($prompt, $handler, $completionProviders);
     }
 
-    public function clear(): void
+    /** A tool that is gone no longer holds its name. */
+    public function unregisterTool(string $name): void
     {
-        $this->inner->clear();
+        unset($this->owners[$name]);
+        $this->inner->unregisterTool($name);
     }
 
-    public function getDiscoveryState(): DiscoveryState
+    public function unregisterResource(string $uri): void
     {
-        return $this->inner->getDiscoveryState();
+        $this->inner->unregisterResource($uri);
+    }
+
+    public function unregisterResourceTemplate(string $uriTemplate): void
+    {
+        $this->inner->unregisterResourceTemplate($uriTemplate);
+    }
+
+    public function unregisterPrompt(string $name): void
+    {
+        $this->inner->unregisterPrompt($name);
+    }
+
+    public function hasTool(string $name): bool
+    {
+        return $this->inner->hasTool($name);
+    }
+
+    public function hasResource(string $uri): bool
+    {
+        return $this->inner->hasResource($uri);
+    }
+
+    public function hasResourceTemplate(string $uriTemplate): bool
+    {
+        return $this->inner->hasResourceTemplate($uriTemplate);
+    }
+
+    public function hasPrompt(string $name): bool
+    {
+        return $this->inner->hasPrompt($name);
     }
 
     public function hasTools(): bool
@@ -251,7 +251,7 @@ final class PolicyRegistry implements RegistryInterface
      * arguments against it before any handler sees them, and an agent only
      * uses what the schema offers.
      *
-     * @return array{array{type: 'object', properties: array<string, mixed>, required: array<string>|null}, string|null}
+     * @return array{array{type: 'object', properties: array<string, mixed>|\stdClass, required: array<string>|null}, string|null}
      */
     private static function withWriteControls(Tool $tool, ToolPolicy $policy): array
     {
@@ -261,12 +261,9 @@ final class PolicyRegistry implements RegistryInterface
             return [$schema, $description];
         }
 
-        // Copied by iteration: an empty property list can arrive as a
-        // stdClass (Tool::fromArray does that), whatever the type says.
-        $properties = [];
-        foreach ($schema['properties'] as $name => $property) {
-            $properties[$name] = $property;
-        }
+        // An empty property list arrives as a stdClass (the SDK keeps it so,
+        // to serialise it as {} rather than []).
+        $properties = $schema['properties'] instanceof \stdClass ? get_object_vars($schema['properties']) : $schema['properties'];
         if (isset($properties[self::DRY_RUN]) || isset($properties[self::CONFIRM])) {
             // The tool has an argument of that name itself; ours would shadow it.
             return [$schema, $description];

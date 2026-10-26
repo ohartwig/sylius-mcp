@@ -8,6 +8,7 @@ declare(strict_types=1);
 namespace Koh\SyliusMcp;
 
 use Koh\SyliusMcp\DependencyInjection\McpReferenceContainerPass;
+use Koh\SyliusMcp\DependencyInjection\McpServerIds;
 use Koh\SyliusMcp\Mcp\ServerInstructions;
 use Koh\SyliusMcp\Policy\ToolClass;
 use Koh\SyliusMcp\Security\ToolAccessDecider;
@@ -37,7 +38,7 @@ final class KohSyliusMcpBundle extends AbstractBundle
                 ->scalarNode('version')->defaultValue('1.0.0')->end()
                 ->scalarNode('transport_path')
                     ->defaultValue('/_mcp')
-                    ->info('Where the MCP server listens. Must match the route the plugin registers.')
+                    ->info('Where the MCP server listens. Also sets mcp.servers.sylius_shop.http.path, the route of the plugin\'s server.')
                 ->end()
                 ->arrayNode('allowed_origins')
                     ->info('Browser origins (scheme://host[:port]) allowed to call the MCP endpoint besides the shop itself. Requests without Origin (server-side clients) are not affected.')
@@ -126,14 +127,48 @@ final class KohSyliusMcpBundle extends AbstractBundle
     }
 
     /**
-     * Server instructions, unless the application sets mcp.instructions
-     * itself: prepended configuration is overridden by the application's.
+     * Puts this package onto sylius/mcp-server-plugin's MCP server
+     * (`mcp.servers.sylius_shop`, see McpServerIds).
+     *
+     * Prepended, so the application's configuration wins:
+     *  - `registry`: this package's tools, resources and prompts. Since
+     *    mcp-bundle 0.13 a server only serves the element services its
+     *    registry lists; the plugin lists only its own tools.
+     *  - `instructions`: the server instructions.
+     *  - `http.allowed_hosts: false`: the SDK's DNS rebinding check admits
+     *    localhost only unless told otherwise, which would refuse every
+     *    request to a real shop host. McpOriginSubscriber already validates
+     *    the Origin of browser requests against the shop and
+     *    `allowed_origins`, as it did before the SDK had the check.
+     *
+     * Appended, so it wins over the plugin's `/mcp/shop`: `http.path` from
+     * `koh_sylius_mcp.transport_path` (default `/_mcp`). The endpoint stays
+     * where it was, where McpOriginSubscriber, the server card and the
+     * applications' firewall rules expect it.
      */
     public function prependExtension(ContainerConfigurator $container, ContainerBuilder $builder): void
     {
-        if ($builder->hasExtension('mcp')) {
-            $builder->prependExtensionConfig('mcp', ['instructions' => ServerInstructions::TEXT]);
+        if (!$builder->hasExtension('mcp')) {
+            return;
         }
+
+        $builder->prependExtensionConfig('mcp', ['servers' => [McpServerIds::NAME => [
+            'instructions' => ServerInstructions::TEXT,
+            'http' => ['allowed_hosts' => false],
+            'registry' => [
+                'tools' => ['Koh\\SyliusMcp\\Tool\\'],
+                'resources' => ['Koh\\SyliusMcp\\Resource\\'],
+                'prompts' => ['Koh\\SyliusMcp\\Prompt\\'],
+            ],
+        ]]]);
+
+        $path = '/_mcp';
+        foreach ($builder->getExtensionConfig('koh_sylius_mcp') as $config) {
+            if (\is_string($config['transport_path'] ?? null)) {
+                $path = $config['transport_path'];
+            }
+        }
+        $container->extension('mcp', ['servers' => [McpServerIds::NAME => ['http' => ['path' => $path]]]]);
     }
 
     public function build(ContainerBuilder $container): void

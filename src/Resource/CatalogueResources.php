@@ -27,8 +27,8 @@ use Sylius\Component\Product\Model\ProductOptionValueInterface;
  * otherwise have to guess, or fish out of product data one call at a time.
  * Codes are what the write tools take; names are there to recognise them.
  *
- * Registered by {@see \Koh\SyliusMcp\Mcp\KohCapabilityLoader}; read access is
- * checked by {@see \Koh\SyliusMcp\Mcp\GuardedReadResourceHandler}.
+ * Registered with the MCP server by the mcp-bundle (see config/services.php
+ * and KohSyliusMcpBundle::prependExtension()); read access is checked by {@see \Koh\SyliusMcp\Mcp\GuardedReadResourceHandler}.
  */
 final class CatalogueResources
 {

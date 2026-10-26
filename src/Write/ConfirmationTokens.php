@@ -14,8 +14,8 @@ use Psr\Cache\CacheItemPoolInterface;
  * The confirm token a preview hands out and the confirmed call hands back.
  *
  * MCP has a protocol answer for "ask the human before doing this":
- * elicitation. The PHP SDK this server runs on (mcp/sdk 0.3) does not
- * implement it, so the confirmation runs through the agent: the preview
+ * elicitation. This package was built on mcp/sdk 0.3, which did not
+ * implement it, and keeps the confirmation running through the agent: the preview
  * returns a token, the agent shows the preview to the user, and only a second
  * call carrying the token executes.
  *

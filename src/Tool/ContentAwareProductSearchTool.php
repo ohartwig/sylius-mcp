@@ -14,10 +14,10 @@ use Sylius\Component\Product\Repository\ProductRepositoryInterface;
 
 /**
  * Content-aware product search, exposed to LLM agents as an MCP tool. Registered
- * by {@see \Koh\SyliusMcp\Mcp\KohCapabilityLoader}. The attribute sits on the
- * class, not on __invoke(): the SDK's discoverer reads __invoke() only through a
- * class attribute and skips a method attribute there without a word — which is
- * how this tool came to be served by nobody.
+ * with the MCP server by the mcp-bundle (see config/services.php). The
+ * attribute sits on the class, not on __invoke(): the SDK's discoverer reads
+ * __invoke() only through a class attribute and skips a method attribute there
+ * without a word — which is how this tool came to be served by nobody.
  *
  * First pass: plain Sylius product search by phrase + locale. The "content
  * aware" enrichment (matching TYPO3 CMS pages/articles to products) is wired
