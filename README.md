@@ -187,16 +187,27 @@ SDK runs the tool, and `tools/list` shows only what that caller may call:
 ```yaml
 koh_sylius_mcp:
     class_roles:
-        read: [ROLE_ADMINISTRATION_ACCESS]       # default for all three
+        read: [ROLE_ADMINISTRATION_ACCESS]       # default for read and write
         write: [ROLE_ADMINISTRATION_ACCESS]
-        high_risk: [ROLE_MCP_CATALOGUE]          # only admins holding this role change the catalogue
+        high_risk: [ROLE_ADMIN_FULL]             # required: no default, see below
     tools:
         fetch_order: { roles: [ROLE_MCP_ORDERS] } # replaces the class roles for this tool
 ```
 
+**`class_roles.high_risk` has no default.** Every administrator holds
+`ROLE_ADMINISTRATION_ACCESS`, including one a shop restricts to orders in its
+`access_control`; that split does not reach `/_mcp`. Until the setting (or a
+tool's own `roles`) names the roles that may change the catalogue, published
+content or real orders, every high-risk tool is refused with
+"High-risk tools are switched off until koh_sylius_mcp.class_roles.high_risk
+names the roles …" and is left out of `tools/list`. Name the role your admin
+uses for full access — and if the shop has a role split, set `write` to it as
+well, so an orders-only administrator does not fill carts either.
+
 An empty role list never means "no role needed"; it falls back to
-`ROLE_ADMINISTRATION_ACCESS`. A refused call returns a tool error with the
-reason; the tool does not run.
+`ROLE_ADMINISTRATION_ACCESS` for read and write, and to the refusal above for
+high_risk. A refused call returns a tool error with the reason; the tool does
+not run.
 
 The scope facts come from security-token attributes (`koh_mcp.scopes`,
 `koh_mcp.token_id`, `koh_mcp.client_id`, see

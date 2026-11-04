@@ -7,9 +7,11 @@ declare(strict_types=1);
 
 namespace Koh\SyliusMcp\Tests\Security;
 
+use Koh\SyliusMcp\Policy\ToolClass;
 use Koh\SyliusMcp\Policy\ToolPolicyProvider;
 use Koh\SyliusMcp\Security\McpCaller;
 use Koh\SyliusMcp\Security\McpCallerResolver;
+use Koh\SyliusMcp\Security\ToolAccessDecider;
 use Koh\SyliusMcp\Tests\Support\McpSecurityFixtures;
 use PHPUnit\Framework\Attributes\DataProvider;
 use PHPUnit\Framework\TestCase;
@@ -93,6 +95,22 @@ final class ToolAccessDeciderTest extends TestCase
 
         self::assertSame(['ROLE_ADMINISTRATION_ACCESS'], $decider->rolesFor('search_products', (new ToolPolicyProvider())->get('search_products')->class));
         self::assertFalse($decider->decide((new ToolPolicyProvider())->get('search_products'), self::callers()->resolve())->allowed);
+    }
+
+    /**
+     * AUD-016-F01, the record's reproduction: without class roles the
+     * high-risk tools resolved to ROLE_ADMINISTRATION_ACCESS, the role every
+     * administrator — orders-only ones too — holds.
+     */
+    public function testF01HighRiskDoesNotDefaultToTheWeakestRole(): void
+    {
+        $decider = new ToolAccessDecider(null, [], []);
+
+        self::assertNotSame([ToolAccessDecider::DEFAULT_ROLE], $decider->rolesFor('update_product', ToolClass::HighRisk));
+        self::assertSame([ToolAccessDecider::HIGH_RISK_UNCONFIGURED], $decider->rolesFor('update_product', ToolClass::HighRisk));
+        self::assertSame([ToolAccessDecider::DEFAULT_ROLE], $decider->rolesFor('search_products', ToolClass::Read));
+        // A tool's own roles still apply without the class setting.
+        self::assertSame(['ROLE_MCP_CATALOGUE'], (new ToolAccessDecider(null, [], ['update_product' => ['roles' => ['ROLE_MCP_CATALOGUE']]]))->rolesFor('update_product', ToolClass::HighRisk));
     }
 
     /** The stdio transport runs in the operator's shell; there is no token to check. */

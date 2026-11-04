@@ -190,6 +190,49 @@ final class GuardedToolHandlersTest extends TestCase
         self::assertSame([], self::listToolNames($this->list(self::callers(user: null))));
     }
 
+    /**
+     * AUD-016-F01: the shop splits its administrators into orders-only and
+     * full in access_control; with class roles set to ROLE_ADMIN_FULL the
+     * same split reaches the MCP tools. An orders-only administrator's token
+     * is refused update_product and does not see it in tools/list.
+     */
+    public function testF01AnOrdersOnlyAdministratorCannotEditTheCatalogue(): void
+    {
+        $classRoles = ['write' => ['ROLE_ADMIN_FULL'], 'high_risk' => ['ROLE_ADMIN_FULL']];
+        $ordersOnly = self::decider(['ROLE_ADMINISTRATION_ACCESS', 'ROLE_ORDER_MANAGEMENT'], $classRoles);
+        $full = self::decider(['ROLE_ADMINISTRATION_ACCESS', 'ROLE_ADMIN_FULL'], $classRoles);
+        $writer = self::callers(scopes: ['mcp:write']);
+
+        $refused = self::callTool($this->call($writer, $ordersOnly), 'update_product', ['code' => 'MUG']);
+        self::assertTrue($refused->isError);
+        self::assertStringContainsString('Access denied: This tool requires one of the roles ROLE_ADMIN_FULL', self::text($refused));
+        self::assertSame([], $this->tools['update_product']->calls);
+        self::assertSame(['search_products'], self::listToolNames($this->list($writer, $ordersOnly)));
+
+        self::assertFalse(self::callTool($this->call($writer, $full), 'update_product', ['code' => 'MUG'])->isError);
+        self::assertContains('update_product', self::listToolNames($this->list($writer, $full)));
+    }
+
+    /**
+     * AUD-016-F01: a fresh installation that names no high-risk role refuses
+     * high-risk tools and says which setting to name, instead of letting
+     * every administrator (ROLE_ADMINISTRATION_ACCESS) run them.
+     */
+    public function testF01AFreshInstallationRefusesHighRiskToolsNamingTheSetting(): void
+    {
+        $fresh = self::decider(['ROLE_ADMINISTRATION_ACCESS'], []);
+        $writer = self::callers(scopes: ['mcp:write']);
+
+        $refused = self::callTool($this->call($writer, $fresh), 'update_product', ['code' => 'MUG']);
+        self::assertTrue($refused->isError);
+        self::assertStringContainsString(ToolAccessDecider::HIGH_RISK_SETTING, self::text($refused));
+        self::assertSame([], $this->tools['update_product']->calls);
+        self::assertNotContains('update_product', self::listToolNames($this->list($writer, $fresh)));
+        // Read and cart tools keep ROLE_ADMINISTRATION_ACCESS.
+        self::assertFalse(self::callTool($this->call($writer, $fresh), 'search_products')->isError);
+        self::assertFalse(self::callTool($this->call($writer, $fresh), 'add_item_to_order')->isError);
+    }
+
     private function call(McpCallerResolver $callers, ?ToolAccessDecider $decider = null, ?ToolCallAuditor $auditor = null): GuardedCallToolHandler
     {
         return new GuardedCallToolHandler(
@@ -202,8 +245,8 @@ final class GuardedToolHandlersTest extends TestCase
         );
     }
 
-    private function list(McpCallerResolver $callers): FilteredListToolsHandler
+    private function list(McpCallerResolver $callers, ?ToolAccessDecider $decider = null): FilteredListToolsHandler
     {
-        return new FilteredListToolsHandler($this->registry, new ToolPolicyProvider(), self::decider(), $callers);
+        return new FilteredListToolsHandler($this->registry, new ToolPolicyProvider(), $decider ?? self::decider(), $callers);
     }
 }
