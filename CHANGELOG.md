@@ -1,3 +1,19 @@
+## [4.0.2](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/compare/v4.0.1...v4.0.2) (2026-11-05)
+
+### :bug: Fixes
+
+* **security:** AUD-053 F01 — replace customer identifiers with placeholders ([9de7d9e](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/commit/9de7d9ecc2b291db4973543ac3f31cb78ac427d0))
+* **security:** no default role for high-risk tools ([e256a25](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/commit/e256a25630d98c7f6804e93d5b05e918f3184780))
+
+### :white_check_mark: Tests
+
+* **security:** AUD-053 F01 — fix the hygiene test namespace (PSR-4) ([991fe2d](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/commit/991fe2dd640771335bdcf19d915359d557a81378))
+* **security:** AUD-053 F01 — add the customer-name hygiene test ([e1cead6](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/commit/e1cead69d99fa81d64b2e76055e98b6b0854d656))
+
+### :repeat: Continuous Integrations
+
+* **license:** except sylius/mcp-server-plugin v0.3.0 from the licence gate ([99536b7](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/commit/99536b730e0f51127d70637942f3e917c0a28211))
+
 ## [4.0.1](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/compare/v4.0.0...v4.0.1) (2026-10-30)
 
 ### :repeat: Chores
