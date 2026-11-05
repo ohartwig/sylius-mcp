@@ -66,6 +66,45 @@ final class DraftPolicyTest extends TestCase
     }
 
     /**
+     * An explicit null lifts one built-in rule for one tool: agents may edit
+     * live products, and every other draft rule stays.
+     */
+    public function testANullRefuseLiveProductLetsAgentsEditLiveProducts(): void
+    {
+        $created = $this->product('NEW', true);
+        $policy = new DraftPolicy(false, ['update_product' => ['refuse_live_product' => null]], $this->repository(['MUG' => $this->product('MUG', true), 'NEW' => $created]));
+
+        self::assertNull($policy->before('update_product', ['code' => 'MUG', 'description' => 'x'])->refusal);
+        self::assertFalse($policy->governs('update_product'), 'nothing left to enforce: the preview says live');
+
+        self::assertFalse($policy->before('create_article', ['publish' => true])->arguments['publish'], 'articles stay unpublished');
+        self::assertNotNull($policy->before('update_article', ['code' => 'a', 'enabled' => true])->refusal, 'articles are not published by an agent');
+        $policy->after('create_product', ['code' => 'NEW'], ['status' => 'created']);
+        self::assertFalse($created->isEnabled(), 'created products stay disabled');
+    }
+
+    /** A key that is not configured keeps the built-in value. */
+    public function testAnAbsentKeyKeepsTheBuiltInRule(): void
+    {
+        $policy = new DraftPolicy(false, ['update_product' => ['force' => ['note' => 'agent']]], $this->repository(['MUG' => $this->product('MUG', true)]));
+
+        self::assertStringContainsString('is live', (string) $policy->before('update_product', ['code' => 'MUG', 'description' => 'x'])->refusal);
+    }
+
+    public function testANullDisableCreatedProductOnlyLiftsThatTool(): void
+    {
+        $imported = $this->product('IMP', true);
+        $created = $this->product('NEW', true);
+        $policy = new DraftPolicy(false, ['import_product' => ['disable_created_product' => null]], $this->repository(['IMP' => $imported, 'NEW' => $created, 'MUG' => $this->product('MUG', true)]));
+
+        self::assertNull($policy->after('import_product', ['code' => 'IMP'], ['status' => 'created']));
+        self::assertTrue($imported->isEnabled());
+        $policy->after('create_product', ['code' => 'NEW'], ['status' => 'created']);
+        self::assertFalse($created->isEnabled(), 'create_product keeps its rule');
+        self::assertNotNull($policy->before('update_product', ['code' => 'MUG'])->refusal, 'update_product keeps its rule');
+    }
+
+    /**
      * create_product enables what it creates. The policy disables it right
      * after — only when this call created it.
      */

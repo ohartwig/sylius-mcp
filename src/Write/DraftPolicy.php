@@ -36,8 +36,15 @@ use Sylius\Resource\Model\ToggleableInterface;
  *    token comes back from the same agent that asked for the preview, so it
  *    proves nothing about a person having seen it, and an edit to a live
  *    product is visible in the shop at once. An agent edits disabled
- *    products; a person enables them. A shop that wants agents to edit live
- *    products opts in with `writes.live: true`.
+ *    products; a person enables them.
+ *
+ * Configured rules (`writes.drafts.<tool>`) are merged over {@see self::BUILT_IN}
+ * key by key: a key that is absent keeps the built-in value. An explicit null
+ * (`~`) for `disable_created_product` or `refuse_live_product` removes that
+ * key from the tool's rule — a per-tool opt-out. A shop that wants agents to
+ * edit live products, and every other draft rule kept, sets
+ * `writes.drafts.update_product.refuse_live_product: ~`. `writes.live: true`
+ * instead switches off every rule, for every tool.
  *
  * Publishing — enabling the product or article — is a human's step in the
  * admin. With `live: true` none of this applies.
@@ -75,11 +82,23 @@ final class DraftPolicy
                 }
             }
             foreach (['disable_created_product', 'refuse_live_product'] as $key) {
-                if (isset($rule[$key]) && '' !== $rule[$key]) {
+                if (!\array_key_exists($key, $rule)) {
+                    continue;
+                }
+                if (null === $rule[$key]) {
+                    // An explicit null (`~`) lifts the built-in rule for this tool.
+                    unset($base[$key]);
+                } elseif ('' !== $rule[$key]) {
                     $base[$key] = $rule[$key];
                 }
             }
-            $merged[$tool] = $base;
+            if ([] === $base) {
+                // Nothing left to enforce: the tool is not governed, and its
+                // preview says live.
+                unset($merged[$tool]);
+            } else {
+                $merged[$tool] = $base;
+            }
         }
         $this->rules = $merged;
     }
