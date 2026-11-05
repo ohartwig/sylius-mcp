@@ -72,8 +72,8 @@ final class CatalogueResourcesTest extends TestCase
         $currency = new Currency();
         $currency->setCode('EUR');
         $channel = new Channel();
-        $channel->setCode('budde');
-        $channel->setName('Budde');
+        $channel->setCode('example');
+        $channel->setName('example');
         $channel->setHostname('shop.example');
         $channel->setDefaultLocale($locale);
         $channel->addLocale($locale);
@@ -83,7 +83,7 @@ final class CatalogueResourcesTest extends TestCase
         $json = json_decode($this->resources(channels: [$channel, new \stdClass()])->channels()->text, true);
 
         self::assertSame([[
-            'code' => 'budde', 'name' => 'Budde', 'hostname' => 'shop.example', 'enabled' => true,
+            'code' => 'example', 'name' => 'example', 'hostname' => 'shop.example', 'enabled' => true,
             'defaultLocale' => 'de_DE', 'locales' => ['de_DE'], 'baseCurrency' => 'EUR', 'currencies' => ['EUR'], 'menuTaxon' => null,
         ]], $json['items']);
     }

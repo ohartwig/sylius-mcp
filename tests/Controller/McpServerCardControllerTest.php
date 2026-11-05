@@ -27,7 +27,7 @@ final class McpServerCardControllerTest extends TestCase
     {
         $card = $this->card(['search_products']);
 
-        self::assertSame('Tabak Budde', $card['serverInfo']['name']);
+        self::assertSame('Example Shop', $card['serverInfo']['name']);
         self::assertSame('1.0.0', $card['serverInfo']['version']);
         self::assertSame('https://shop.example.com/_mcp', $card['transport']['endpoint']);
         self::assertSame('streamable-http', $card['transport']['type']);
@@ -107,7 +107,7 @@ final class McpServerCardControllerTest extends TestCase
     {
         $channel = $this->createStub(ChannelInterface::class);
         $channel->method('getCode')->willReturn('WEB_DE');
-        $channel->method('getName')->willReturn('Tabak Budde');
+        $channel->method('getName')->willReturn('Example Shop');
 
         $factory = $this->createStub(AgentContextFactoryInterface::class);
         $factory->method('create')->willReturn(

@@ -36,8 +36,8 @@ final class PreviewTest extends TestCase
     /** A reviewer sees whether the channel and taxon the call names exist. */
     public function testCreatingReportsMissingChannelAndTaxon(): void
     {
-        $preview = (new ProductWritePreview($this->repo([]), $this->repo(['budde' => new \stdClass()]), $this->repo([])))
-            ->preview('create_product', ['code' => 'NEW', 'name' => 'New', 'price' => 1150, 'channelCode' => 'budde', 'taxonCode' => 'pfeifen']);
+        $preview = (new ProductWritePreview($this->repo([]), $this->repo(['example' => new \stdClass()]), $this->repo([])))
+            ->preview('create_product', ['code' => 'NEW', 'name' => 'New', 'price' => 1150, 'channelCode' => 'example', 'taxonCode' => 'pfeifen']);
 
         self::assertSame('create', $preview['effect']);
         self::assertTrue($preview['checks']['channel']['exists']);
