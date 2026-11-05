@@ -7,6 +7,7 @@ declare(strict_types=1);
 
 namespace Koh\SyliusMcp;
 
+use Koh\SyliusMcp\DependencyInjection\AuditChannelHandlerPass;
 use Koh\SyliusMcp\DependencyInjection\McpReferenceContainerPass;
 use Koh\SyliusMcp\DependencyInjection\McpServerIds;
 use Koh\SyliusMcp\Mcp\ServerInstructions;
@@ -89,6 +90,10 @@ final class KohSyliusMcpBundle extends AbstractBundle
                             ->min(16)
                             ->defaultValue(200)
                             ->info('Strings in logged tool arguments are cut to this many characters.')
+                        ->end()
+                        ->booleanNode('require_handler')
+                            ->defaultFalse()
+                            ->info('Fail the container build when no monolog handler names the koh_mcp_audit channel. Without it the build only logs the problem and the auditor warns once per process on stderr.')
                         ->end()
                     ->end()
                 ->end()
@@ -182,6 +187,7 @@ final class KohSyliusMcpBundle extends AbstractBundle
         // After the mcp-bundle's McpPass (priority 0), which creates the
         // service locator this pass hands on.
         $container->addCompilerPass(new McpReferenceContainerPass(), PassConfig::TYPE_BEFORE_OPTIMIZATION, -10);
+        $container->addCompilerPass(new AuditChannelHandlerPass());
     }
 
     /**
@@ -200,6 +206,9 @@ final class KohSyliusMcpBundle extends AbstractBundle
         $builder->setParameter('koh_sylius_mcp.writes.confirmation_ttl', (int) ($config['writes']['confirmation_ttl'] ?? 300));
         $builder->setParameter('koh_sylius_mcp.writes.drafts', $config['writes']['drafts'] ?? []);
         $builder->setParameter('koh_sylius_mcp.audit.argument_max_length', (int) ($config['audit']['argument_max_length'] ?? 200));
+        $builder->setParameter(AuditChannelHandlerPass::REQUIRE_PARAMETER, (bool) ($config['audit']['require_handler'] ?? false));
+        // Until AuditChannelHandlerPass has looked at the monolog handlers.
+        $builder->setParameter(AuditChannelHandlerPass::UNROUTED_PARAMETER, false);
 
         $container->import(\dirname(__DIR__).'/config/services.php');
     }

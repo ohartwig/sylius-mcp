@@ -69,6 +69,8 @@ return static function (ContainerConfigurator $container): void {
         ->args([
             service('logger')->nullOnInvalid(),
             param('koh_sylius_mcp.audit.argument_max_length'),
+            // Set by AuditChannelHandlerPass: no handler names the channel.
+            param('koh_sylius_mcp.audit.unrouted'),
         ])
         ->tag('monolog.logger', ['channel' => 'koh_mcp_audit']);
 
