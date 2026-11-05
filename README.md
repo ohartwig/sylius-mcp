@@ -269,6 +269,24 @@ koh_sylius_mcp:
                 refuse_live_product: code
 ```
 
+Configured rules are merged over the built-in ones key by key: a key you leave
+out keeps the built-in value. An explicit `~` (null) for
+`disable_created_product` or `refuse_live_product` removes that built-in rule
+for that one tool. A shop whose agents may edit live products, while new
+products stay disabled and articles unpublished, lifts only that rule:
+
+```yaml
+koh_sylius_mcp:
+    writes:
+        drafts:
+            update_product:
+                refuse_live_product: ~   # agents edit enabled products; previews say LIVE
+```
+
+Such an edit is visible in the shop at once and is guarded only by the
+confirmation through the agent (see below). This per-tool opt-out is narrower
+than `writes.live: true`, which switches off every draft rule for every tool.
+
 **Dry run.** Every `write` and `high_risk` tool takes `dryRun: true`: the call
 returns what it would do and does nothing. For the product tools the preview
 says whether the product exists and is live, whether channel and taxon exist,
@@ -296,7 +314,8 @@ agent does reaches the storefront without a person enabling it in the admin.
 products and articles may go live, and `update_product` edits enabled
 products — previewed as LIVE and executed with the confirm token. Choose it
 only if the confirmation through the agent is enough for your shop; it is an
-opt-in per installation.
+opt-in per installation. To allow only edits of live products, use
+`writes.drafts.update_product.refuse_live_product: ~` instead (above).
 
 **`complete_checkout` is switched off.** It places a binding order, and the
 handbook does not permit financial transactions by agents. A shop that wants

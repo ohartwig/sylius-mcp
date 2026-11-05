@@ -69,7 +69,7 @@ final class KohSyliusMcpBundle extends AbstractBundle
                             ->info('Seconds a confirm token stays valid.')
                         ->end()
                         ->arrayNode('drafts')
-                            ->info('Draft rules per tool, merged over the built-in ones (create_product, import_product, update_product, create_article, update_article).')
+                            ->info('Draft rules per tool, merged over the built-in ones (create_product, import_product, update_product, create_article, update_article). A key left out keeps the built-in value; ~ (null) for disable_created_product or refuse_live_product removes that built-in rule for the tool.')
                             ->useAttributeAsKey('tool')
                             ->arrayPrototype()
                                 ->children()

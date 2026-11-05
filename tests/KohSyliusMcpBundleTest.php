@@ -7,6 +7,7 @@ declare(strict_types=1);
 
 namespace Koh\SyliusMcp\Tests;
 
+use Doctrine\Persistence\ObjectRepository;
 use Koh\SyliusMcp\Agent\McpEndpointProvider;
 use Koh\SyliusMcp\Controller\McpServerCardController;
 use Koh\SyliusMcp\DependencyInjection\McpServerIds;
@@ -17,7 +18,9 @@ use Koh\SyliusMcp\Resource\CatalogueResources;
 use Koh\SyliusMcp\Security\ToolAccessDecider;
 use Koh\SyliusMcp\Tool\ContentAwareProductSearchTool;
 use Koh\SyliusMcp\Tool\FetchProductTool;
+use Koh\SyliusMcp\Write\DraftPolicy;
 use PHPUnit\Framework\TestCase;
+use Sylius\Component\Core\Model\Product;
 use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
 use Symfony\Component\DependencyInjection\ContainerBuilder;
 
@@ -92,6 +95,35 @@ final class KohSyliusMcpBundleTest extends TestCase
             ['ROLE_ADMIN_FULL'],
             $this->load(['class_roles' => ['high_risk' => ['ROLE_ADMIN_FULL']]])->getParameter('koh_sylius_mcp.class_roles')['high_risk'],
         );
+    }
+
+    /**
+     * The processed config keeps an explicit null, so `refuse_live_product: ~`
+     * reaches DraftPolicy and lifts the built-in rule; an absent key does not.
+     */
+    public function testANullDraftKeyLiftsTheBuiltInRuleThroughTheConfigTree(): void
+    {
+        $live = new Product();
+        $live->setCode('MUG');
+        $live->setEnabled(true);
+        $products = $this->createStub(ObjectRepository::class);
+        $products->method('findOneBy')->willReturn($live);
+
+        $lifted = $this->load(['writes' => ['drafts' => ['update_product' => ['refuse_live_product' => null]]]]);
+        $drafts = $lifted->getParameter('koh_sylius_mcp.writes.drafts');
+        self::assertIsArray($drafts);
+        self::assertArrayHasKey('refuse_live_product', $drafts['update_product']);
+        self::assertNull($drafts['update_product']['refuse_live_product']);
+        $policy = new DraftPolicy((bool) $lifted->getParameter('koh_sylius_mcp.writes.live'), $drafts, $products);
+        self::assertNull($policy->before('update_product', ['code' => 'MUG'])->refusal);
+        self::assertFalse($policy->before('create_article', ['publish' => true])->arguments['publish'], 'the other draft rules stay');
+
+        $kept = $this->load(['writes' => ['drafts' => ['update_product' => ['force' => ['note' => 'agent']]]]]);
+        $drafts = $kept->getParameter('koh_sylius_mcp.writes.drafts');
+        self::assertIsArray($drafts);
+        self::assertArrayNotHasKey('refuse_live_product', $drafts['update_product']);
+        $policy = new DraftPolicy(false, $drafts, $products);
+        self::assertNotNull($policy->before('update_product', ['code' => 'MUG'])->refusal);
     }
 
     public function testAnUnknownToolClassIsRejected(): void
