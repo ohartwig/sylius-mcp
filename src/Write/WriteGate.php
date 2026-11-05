@@ -109,7 +109,7 @@ final class WriteGate
             $payload['confirm'] = $token->value;
             $payload['confirm_expires_at'] = $token->expiresAt->format(\DATE_ATOM);
             $payload['next_step'] = \sprintf(
-                'Show this preview to the user. Only if they agree, call %s again with exactly the same arguments plus "confirm": "%s".',
+                'Show this preview to the user. Only if they agree, call %s again with exactly the same arguments plus "confirm": "%s". The token only binds the second call to this preview; it is not proof that anyone agreed.',
                 $policy->name,
                 $token->value,
             );

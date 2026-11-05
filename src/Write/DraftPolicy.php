@@ -32,9 +32,12 @@ use Sylius\Resource\Model\ToggleableInterface;
  *    application, not to this package; this is the hook that works without
  *    changing them;
  *  - `refuse_live_product`: the call is refused if the product named by that
- *    argument is enabled. No built-in rule uses it: update_product may edit
- *    a live product (owner's decision), guarded by preview and confirmation
- *    as a high-risk tool. It is there for an application that wants it.
+ *    argument is enabled. update_product uses it (AUD-016-F03): the confirm
+ *    token comes back from the same agent that asked for the preview, so it
+ *    proves nothing about a person having seen it, and an edit to a live
+ *    product is visible in the shop at once. An agent edits disabled
+ *    products; a person enables them. A shop that wants agents to edit live
+ *    products opts in with `writes.live: true`.
  *
  * Publishing — enabling the product or article — is a human's step in the
  * admin. With `live: true` none of this applies.
@@ -47,6 +50,7 @@ final class DraftPolicy
         'import_product' => ['disable_created_product' => 'code'],
         'create_article' => ['force' => ['publish' => false]],
         'update_article' => ['refuse' => ['enabled' => true]],
+        'update_product' => ['refuse_live_product' => 'code'],
     ];
 
     /** @var array<string, array{force?: array<string, mixed>, refuse?: array<string, mixed>, disable_created_product?: string, refuse_live_product?: string}> */

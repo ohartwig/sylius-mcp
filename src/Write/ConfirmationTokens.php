@@ -16,8 +16,16 @@ use Psr\Cache\CacheItemPoolInterface;
  * MCP has a protocol answer for "ask the human before doing this":
  * elicitation. This package was built on mcp/sdk 0.3, which did not
  * implement it, and keeps the confirmation running through the agent: the preview
- * returns a token, the agent shows the preview to the user, and only a second
- * call carrying the token executes.
+ * returns a token, the agent is told to show the preview to the user, and only a
+ * second call carrying the token executes.
+ *
+ * What the token is: a replay guard that binds the executing call to the
+ * preview. What it is not: a person's yes. The token goes to the agent and
+ * comes back from the agent; the server cannot tell whether anyone saw the
+ * preview (AUD-016-F03). That is why edits that would reach the storefront at
+ * once are refused in draft mode ({@see DraftPolicy}) rather than left to the
+ * confirmation. When the SDK offers elicitation, the token should be bound to
+ * the elicitation response.
  *
  * The token is bound to everything that made the preview true: the tool, the
  * exact arguments, the administrator and the access token. A token for
