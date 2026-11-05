@@ -1,0 +1,12 @@
+# SPDX-FileCopyrightText: 2026 Kai Ole Hartwig
+# SPDX-License-Identifier: MIT
+#
+# Licence exceptions for test:license-check (test-tools >= 4.6.0). Only
+# `exceptions:` is set, so the default allow and block lists stay in force.
+# Each exception names one package at one version: a version bump makes it
+# STALE-EXCEPTION and the job fails until someone re-checks the licence.
+exceptions:
+  sylius/mcp-server-plugin:
+    version: "v0.3.0"
+    reason: "composer.json of v0.3.0 declares proprietary, the LICENSE shipped in the same tag is MIT (Copyright (c) 2018-present Sylius Sp. z o.o.)"
+    evidence: "vendor/sylius/mcp-server-plugin/LICENSE; upstream https://github.com/Sylius/McpServerPlugin/blob/v0.3.0/LICENSE"
