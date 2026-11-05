@@ -7,6 +7,7 @@ declare(strict_types=1);
 
 namespace Koh\SyliusMcp\Audit;
 
+use Koh\SyliusMcp\DependencyInjection\AuditChannelHandlerPass;
 use Koh\SyliusMcp\Policy\ToolPolicy;
 use Koh\SyliusMcp\Security\McpCaller;
 use Psr\Log\LoggerInterface;
@@ -35,6 +36,11 @@ use Psr\Log\NullLogger;
  *    whole article body in every log line is a second copy of the content;
  *  - a SHA-256 of the complete, unredacted arguments goes along, so two
  *    records can be shown to be the same call without storing either.
+ *
+ * When no handler names the channel ({@see AuditChannelHandlerPass}), the
+ * first record of a process also writes one warning to the PHP error log —
+ * stderr in a container — so a deployment that discards its own audit trail
+ * says so where its logs are read (AUD-016-F02).
  */
 final class ToolCallAuditor
 {
@@ -42,10 +48,22 @@ final class ToolCallAuditor
 
     private const SENSITIVE = '/token|secret|password|passwd|credential|authorization|e-?mail|phone|iban|bic|card|cvc|address|street|postcode|birth/i';
 
+    private bool $warned = false;
+
+    /** @var \Closure(string): mixed */
+    private readonly \Closure $warn;
+
+    /**
+     * @param bool                       $unrouted no handler names the channel (set by AuditChannelHandlerPass)
+     * @param (callable(string): mixed)|null $warn     where the unrouted warning goes; error_log() by default
+     */
     public function __construct(
         private readonly LoggerInterface $logger = new NullLogger(),
         private readonly int $maxLength = 200,
+        private readonly bool $unrouted = false,
+        ?callable $warn = null,
     ) {
+        $this->warn = null !== $warn ? $warn(...) : static fn (string $message): bool => error_log($message);
     }
 
     /**
@@ -61,6 +79,11 @@ final class ToolCallAuditor
         float $startedAt,
         array $extra = [],
     ): void {
+        if ($this->unrouted && !$this->warned) {
+            $this->warned = true;
+            ($this->warn)(AuditChannelHandlerPass::MESSAGE);
+        }
+
         $this->logger->info(self::MESSAGE, [
             'event' => 'mcp.tool_call',
             'tool' => $tool,

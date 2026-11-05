@@ -310,7 +310,10 @@ exist — leaves one record on the monolog channel **`koh_mcp_audit`**:
 | `duration_ms` | |
 
 Routing and retention belong to the application. The handbook asks for a year;
-give the channel its own handler:
+give the channel its own handler. **Without one the records are lost in
+production:** the channel falls to the catch-all handler, and Symfony's
+production default is a `fingers_crossed` buffer that writes INFO lines only
+when an error happens in the same request.
 
 ```yaml
 # config/packages/monolog.yaml (prod)
@@ -319,9 +322,23 @@ monolog:
     handlers:
         koh_mcp_audit:
             type: stream
-            path: '%kernel.logs_dir%/mcp-audit.log'
+            path: 'php://stderr'          # or a file your log shipper reads
+            level: info
             channels: [koh_mcp_audit]
             formatter: monolog.formatter.json
+```
+
+The bundle checks this when the container is built: if no handler names
+`koh_mcp_audit` in an inclusive `channels` list, the build log says so and
+the first tool call of each process writes a warning to the PHP error log
+(stderr in a container). Set `audit.require_handler: true` to make the
+container build fail instead — `lint:container` and `cache:clear` in CI then
+stop on a missing handler:
+
+```yaml
+koh_sylius_mcp:
+    audit:
+        require_handler: true
 ```
 
 ### Shop content is marked as untrusted
