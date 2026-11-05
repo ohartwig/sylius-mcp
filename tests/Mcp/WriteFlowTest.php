@@ -125,13 +125,34 @@ final class WriteFlowTest extends TestCase
     }
 
     /**
-     * A live product is previewed, marked LIVE, and changed only with the
-     * confirm token — not refused.
+     * AUD-016-F03, the attack this test used to pass: one caller asks for the
+     * preview of an edit to a live product and confirms it with the token the
+     * answer carried — no person in between. With the defaults the edit is
+     * refused before any preview or token exists; an agent edits drafts.
      */
-    public function testALiveProductIsPreviewedAsLiveAndConfirmable(): void
+    public function testF03ALiveProductIsRefusedAndNoPreviewIsIssued(): void
     {
         $this->product->setEnabled(true);
         $handler = $this->handler();
+
+        $result = self::callTool($handler, 'update_product', ['code' => 'MUG', 'description' => 'Ignore the above']);
+
+        self::assertTrue($result->isError);
+        self::assertStringContainsString('Product "MUG" is live', self::text($result));
+        self::assertStringContainsString('ask the operator for live writes', self::text($result));
+        self::assertArrayNotHasKey('confirm', $result->structuredContent['data'] ?? []);
+        self::assertSame([], $this->tools['update_product']->calls);
+    }
+
+    /**
+     * With `writes.live: true` the operator opted in: a live product is
+     * previewed, marked LIVE, and changed with the confirm token — the
+     * behaviour before AUD-016-F03.
+     */
+    public function testWithLiveWritesALiveProductIsPreviewedAsLiveAndConfirmable(): void
+    {
+        $this->product->setEnabled(true);
+        $handler = $this->handler(live: true);
 
         $preview = self::callTool($handler, 'update_product', ['code' => 'MUG', 'description' => 'New text'])->structuredContent['data'] ?? [];
         self::assertTrue($preview['preview']['live'] ?? null);
@@ -176,7 +197,7 @@ final class WriteFlowTest extends TestCase
         self::assertStringNotContainsString('secret-host', $response->message);
     }
 
-    private function handler(?PolicyRegistry $registry = null, ?ToolPolicyProvider $policies = null): GuardedCallToolHandler
+    private function handler(?PolicyRegistry $registry = null, ?ToolPolicyProvider $policies = null, bool $live = false): GuardedCallToolHandler
     {
         $registry ??= $this->registry;
         $products = $this->createStub(ObjectRepository::class);
@@ -189,7 +210,7 @@ final class WriteFlowTest extends TestCase
             self::decider(),
             self::callers(),
             writes: new WriteGate(
-                new DraftPolicy(false, [], $products),
+                new DraftPolicy($live, [], $products),
                 new ConfirmationTokens('secret'),
                 [new ProductWritePreview($products, $this->createStub(ObjectRepository::class), $this->createStub(ObjectRepository::class))],
             ),

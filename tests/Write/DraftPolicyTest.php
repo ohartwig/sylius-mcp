@@ -36,12 +36,22 @@ final class DraftPolicyTest extends TestCase
     }
 
     /**
-     * update_product may edit a live product (owner's decision); the guard is
-     * preview and confirmation, not refusal.
+     * AUD-016-F03: the confirmation comes from the agent that asked for the
+     * preview, so it cannot be the guard for an edit customers see at once.
+     * By default update_product edits drafts only; a draft stays editable.
      */
-    public function testALiveProductMayBeEdited(): void
+    public function testF03ALiveProductIsRefusedByDefault(): void
     {
-        $policy = new DraftPolicy(false, [], $this->repository(['MUG' => $this->product('MUG', true)]));
+        $policy = new DraftPolicy(false, [], $this->repository(['MUG' => $this->product('MUG', true), 'NEW' => $this->product('NEW', false)]));
+
+        self::assertStringContainsString('is live', (string) $policy->before('update_product', ['code' => 'MUG', 'description' => 'x'])->refusal);
+        self::assertNull($policy->before('update_product', ['code' => 'NEW', 'description' => 'x'])->refusal);
+    }
+
+    /** `writes.live: true` is the operator's opt-in to edits of live products. */
+    public function testF03LiveWritesAllowEditsToLiveProducts(): void
+    {
+        $policy = new DraftPolicy(true, [], $this->repository(['MUG' => $this->product('MUG', true)]));
 
         self::assertNull($policy->before('update_product', ['code' => 'MUG', 'description' => 'x'])->refusal);
     }

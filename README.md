@@ -125,7 +125,7 @@ Reading a resource needs a token with read scope and is audited as
 
 **Prompts** (`src/Prompt/CataloguePrompts.php`): `catalogue_import(source)` and
 `product_copy_review(code)` walk an agent through the order the server
-enforces — structure first, preview, the user's yes, confirm.
+enforces — structure first, preview, show it to the user, confirm.
 
 **Instructions**: `initialize` sends `Koh\SyliusMcp\Mcp\ServerInstructions`
 (tool classes, preview/confirm, drafts, the untrusted fence). Set
@@ -251,7 +251,7 @@ the admin and not in the shop.
 | Tool | In draft mode |
 |---|---|
 | `create_product`, `import_product` | the product a call creates is disabled right after (the tool itself enables it) |
-| `update_product` | allowed on live products too — the change is visible at once, so it always goes through preview (which says LIVE) and confirmation |
+| `update_product` | refused while the product is live (enabled) — an agent edits drafts, a person enables them |
 | `create_article` | `publish` forced to `false` |
 | `update_article` | `enabled: true` refused — an agent edits, a person publishes |
 
@@ -283,6 +283,20 @@ administrator and access token, expires after `writes.confirmation_ttl`
 seconds (300) and works once (when `cache.app` is available). This is the
 stand-in for MCP elicitation, which mcp/sdk 0.3 did not implement.
 `tools.<name>.confirm` overrides it per tool.
+
+**What the confirmation is, and what it is not.** The token goes to the agent
+and comes back from the agent. It binds the executing call to the preview
+(same tool, same arguments, same administrator and token, once, within the
+TTL) — a replay guard. It is not a person's yes: the server cannot tell
+whether anyone saw the preview, and an agent that follows injected
+instructions can confirm its own call. That is why, in draft mode, nothing an
+agent does reaches the storefront without a person enabling it in the admin.
+
+**Live writes** (`writes.live: true`) switch the draft rules off: new
+products and articles may go live, and `update_product` edits enabled
+products — previewed as LIVE and executed with the confirm token. Choose it
+only if the confirmation through the agent is enough for your shop; it is an
+opt-in per installation.
 
 **`complete_checkout` is switched off.** It places a binding order, and the
 handbook does not permit financial transactions by agents. A shop that wants
