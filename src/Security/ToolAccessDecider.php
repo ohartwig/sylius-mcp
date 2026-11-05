@@ -26,10 +26,25 @@ use Symfony\Component\Security\Core\Authorization\AuthorizationCheckerInterface;
  *
  * Before this, a token identified an administrator and then every tool ran
  * the same way no matter whose token it was. Now the identity decides.
+ *
+ * `high_risk` has no usable default (AUD-016-F01). Every administrator holds
+ * ROLE_ADMINISTRATION_ACCESS — the shop's own role split (orders-only vs
+ * full) lives in access_control and never reaches this class — so defaulting
+ * the catalogue tools to it made every administrator a catalogue editor over
+ * MCP. Until `class_roles.high_risk` (or a tool's own `roles`) names who may
+ * run them, high-risk tools are refused, and the refusal names the setting.
  */
 final class ToolAccessDecider
 {
     public const DEFAULT_ROLE = 'ROLE_ADMINISTRATION_ACCESS';
+
+    /**
+     * Stands for "class_roles.high_risk not set". No administrator holds it;
+     * {@see self::decide()} refuses on it with a message naming the setting.
+     */
+    public const HIGH_RISK_UNCONFIGURED = 'ROLE_KOH_MCP_HIGH_RISK_UNCONFIGURED';
+
+    public const HIGH_RISK_SETTING = 'koh_sylius_mcp.class_roles.high_risk';
 
     /**
      * @param array<string, list<string>>                $classRoles roles per class value; any one suffices
@@ -63,6 +78,13 @@ final class ToolAccessDecider
 
         $roles = $this->rolesFor($policy->name, $policy->class);
 
+        if ([self::HIGH_RISK_UNCONFIGURED] === $roles) {
+            return AccessDecision::deny(\sprintf(
+                'High-risk tools are switched off until %s names the roles that may run them (for example [ROLE_ADMIN_FULL]).',
+                self::HIGH_RISK_SETTING,
+            ));
+        }
+
         if (null === $this->authorizationChecker) {
             return AccessDecision::deny('No authorization checker to evaluate the required roles.');
         }
@@ -80,6 +102,8 @@ final class ToolAccessDecider
      * Never empty. An empty list in the configuration reads as "not set" —
      * the configuration tree fills in [] for an omitted roles key, and
      * "no role required" is not something to get by leaving a key out.
+     * Not set means ROLE_ADMINISTRATION_ACCESS for read and write, and
+     * {@see self::HIGH_RISK_UNCONFIGURED} — nobody — for high_risk.
      *
      * @return list<string>
      */
@@ -91,6 +115,6 @@ final class ToolAccessDecider
             }
         }
 
-        return [self::DEFAULT_ROLE];
+        return ToolClass::HighRisk === $class ? [self::HIGH_RISK_UNCONFIGURED] : [self::DEFAULT_ROLE];
     }
 }

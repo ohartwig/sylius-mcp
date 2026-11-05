@@ -77,11 +77,19 @@ trait McpSecurityFixtures
     }
 
     /**
+     * The fixtures' installation has named its high-risk role; a fresh one
+     * has not and refuses high-risk tools (AUD-016-F01).
+     *
+     * @var array<string, list<string>>
+     */
+    private const CONFIGURED_CLASS_ROLES = ['high_risk' => ['ROLE_ADMINISTRATION_ACCESS']];
+
+    /**
      * @param list<string>                               $granted
      * @param array<string, list<string>>                $classRoles
      * @param array<string, array{roles?: list<string>}> $toolRoles
      */
-    private static function decider(array $granted = ['ROLE_ADMINISTRATION_ACCESS'], array $classRoles = [], array $toolRoles = []): ToolAccessDecider
+    private static function decider(array $granted = ['ROLE_ADMINISTRATION_ACCESS'], array $classRoles = self::CONFIGURED_CLASS_ROLES, array $toolRoles = []): ToolAccessDecider
     {
         return new ToolAccessDecider(self::checker($granted), $classRoles, $toolRoles);
     }

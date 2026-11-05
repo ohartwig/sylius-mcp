@@ -14,6 +14,7 @@ use Koh\SyliusMcp\KohSyliusMcpBundle;
 use Koh\SyliusMcp\Mcp\PolicyRegistry;
 use Koh\SyliusMcp\Prompt\CataloguePrompts;
 use Koh\SyliusMcp\Resource\CatalogueResources;
+use Koh\SyliusMcp\Security\ToolAccessDecider;
 use Koh\SyliusMcp\Tool\ContentAwareProductSearchTool;
 use Koh\SyliusMcp\Tool\FetchProductTool;
 use PHPUnit\Framework\TestCase;
@@ -76,6 +77,20 @@ final class KohSyliusMcpBundleTest extends TestCase
         self::assertSame(
             ['complete_checkout' => ['enabled' => false, 'roles' => []], 'create_order' => ['class' => 'high_risk', 'roles' => []]],
             $container->getParameter('koh_sylius_mcp.tools'),
+        );
+    }
+
+    /** AUD-016-F01: no class_roles means no high-risk role, not the weakest one. */
+    public function testF01HighRiskRolesHaveNoUsableDefault(): void
+    {
+        $roles = $this->load([])->getParameter('koh_sylius_mcp.class_roles');
+
+        self::assertIsArray($roles);
+        self::assertSame([ToolAccessDecider::HIGH_RISK_UNCONFIGURED], $roles['high_risk']);
+        self::assertSame([ToolAccessDecider::DEFAULT_ROLE], $roles['read']);
+        self::assertSame(
+            ['ROLE_ADMIN_FULL'],
+            $this->load(['class_roles' => ['high_risk' => ['ROLE_ADMIN_FULL']]])->getParameter('koh_sylius_mcp.class_roles')['high_risk'],
         );
     }
 
