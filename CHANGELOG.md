@@ -1,3 +1,10 @@
+## [4.0.3](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/compare/v4.0.2...v4.0.3) (2026-11-05)
+
+### :bug: Fixes
+
+* **security:** keep agent edits of live products as drafts by default ([be4f8d2](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/commit/be4f8d2dbe0b5460d6a233769a05fbfebe0a972a))
+* **security:** report an audit channel no handler writes ([1e64cfa](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/commit/1e64cfa962ff97b6b36965648091c9806bb7db99))
+
 ## [4.0.2](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/compare/v4.0.1...v4.0.2) (2026-11-05)
 
 ### :bug: Fixes
