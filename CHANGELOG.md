@@ -1,3 +1,9 @@
+## [4.1.0](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/compare/v4.0.3...v4.1.0) (2026-11-05)
+
+### :sparkles: Features
+
+* **write:** an explicit null in writes.drafts removes a built-in draft rule ([31fdfe8](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/commit/31fdfe8ae28408bc4f8a4c0b37b03b09cfc7e213))
+
 ## [4.0.3](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/compare/v4.0.2...v4.0.3) (2026-11-05)
 
 ### :bug: Fixes
