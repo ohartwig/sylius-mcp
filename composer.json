@@ -1,6 +1,7 @@
 {
     "name": "koh/sylius-mcp",
     "description": "MCP layer over the official sylius/mcp-server-plugin: project tool config + custom MCP tools for content-commerce.",
+    "homepage": "https://ole-hartwig.eu/open-source/sylius-mcp",
     "type": "sylius-bundle",
     "license": "MIT",
     "authors": [
@@ -20,10 +21,10 @@
         "ext-mbstring": "*",
         "doctrine/persistence": "^3.0 || ^4.0",
         "koh/sylius-agent-contracts": "^1.1",
-        "mcp/sdk": "^0.8.1",
+        "mcp/sdk": "^0.9",
         "psr/cache": "^2.0 || ^3.0",
         "psr/log": "^3.0.2",
-        "sylius/mcp-server-plugin": "^0.3.0",
+        "sylius/mcp-server-plugin": "^0.3.1",
         "sylius/resource-bundle": "^1.14.2",
         "sylius/sylius": "^2.2.9 || ^2.3.0",
         "symfony/config": "^6.4 || ^7.4",

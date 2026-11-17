@@ -36,10 +36,7 @@ final class McpCatalogue
     {
         $this->buildServer();
 
-        $tools = array_values(array_filter(
-            $this->registry->getTools()->references,
-            static fn (mixed $tool): bool => $tool instanceof Tool,
-        ));
+        $tools = array_values($this->registry->getTools()->references);
         usort($tools, static fn (Tool $a, Tool $b): int => strcmp($a->name, $b->name));
 
         return $tools;
