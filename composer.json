@@ -1,6 +1,7 @@
 {
     "name": "koh/sylius-mcp",
     "description": "MCP layer over the official sylius/mcp-server-plugin: project tool config + custom MCP tools for content-commerce.",
+    "homepage": "https://ole-hartwig.eu/open-source/sylius-mcp",
     "type": "sylius-bundle",
     "license": "MIT",
     "authors": [
