@@ -164,6 +164,11 @@ final class PolicyRegistry implements RegistryInterface
         $this->inner->unregisterPrompt($name);
     }
 
+    public function publishesListChanges(): bool
+    {
+        return $this->inner->publishesListChanges();
+    }
+
     public function hasTool(string $name): bool
     {
         return $this->inner->hasTool($name);
@@ -251,7 +256,7 @@ final class PolicyRegistry implements RegistryInterface
      * arguments against it before any handler sees them, and an agent only
      * uses what the schema offers.
      *
-     * @return array{array{type: 'object', properties: array<string, mixed>|\stdClass, required: array<string>|null}, string|null}
+     * @return array{array{type: 'object', properties?: array<mixed>|\stdClass, required?: array<mixed>|null}, string|null}
      */
     private static function withWriteControls(Tool $tool, ToolPolicy $policy): array
     {
@@ -263,7 +268,8 @@ final class PolicyRegistry implements RegistryInterface
 
         // An empty property list arrives as a stdClass (the SDK keeps it so,
         // to serialise it as {} rather than []).
-        $properties = $schema['properties'] instanceof \stdClass ? get_object_vars($schema['properties']) : $schema['properties'];
+        $declared = $schema['properties'] ?? [];
+        $properties = $declared instanceof \stdClass ? get_object_vars($declared) : $declared;
         if (isset($properties[self::DRY_RUN]) || isset($properties[self::CONFIRM])) {
             // The tool has an argument of that name itself; ours would shadow it.
             return [$schema, $description];

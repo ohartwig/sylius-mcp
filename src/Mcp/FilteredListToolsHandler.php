@@ -49,8 +49,7 @@ final class FilteredListToolsHandler implements RequestHandlerInterface
 
         $tools = array_values(array_filter(
             $this->registry->getTools()->references,
-            fn (mixed $tool): bool => $tool instanceof Tool
-                && $this->access->decide($this->policies->get($tool->name), $caller)->allowed,
+            fn (Tool $tool): bool => $this->access->decide($this->policies->get($tool->name), $caller)->allowed,
         ));
 
         return new Response($request->getId(), new ListToolsResult($tools));
