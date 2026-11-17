@@ -1,3 +1,14 @@
+## [4.1.2](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/compare/v4.1.1...v4.1.2) (2026-11-17)
+
+### :bug: Fixes
+
+* **deps:** require mcp/sdk ^0.9 and sylius/mcp-server-plugin ^0.3.1 ([090ac70](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/commit/090ac70850c2aaaa8d1a88c2947b2551d6d1828d))
+* **composer:** point homepage at the package page ([9249e8c](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/commit/9249e8c0113f5711dd90f643780198c69597460d))
+
+### :repeat: Chores
+
+* **license:** re-check the sylius/mcp-server-plugin exception for v0.3.1 ([563cbb9](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/commit/563cbb9c4c5fe49b7ddb6833098166c9ad1fbc0a))
+
 ## [4.1.1](https://git.ole-hartwig.eu/ai-ready-platform/platform/sylius-mcp/compare/v4.1.0...v4.1.1) (2026-11-06)
 
 ### :repeat: Chores
